@@ -9,6 +9,8 @@
 ╚═╝     ╚══════╝   ╚═╝   ╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝   ╚═╝    ╚═════╝ ╚═╝  ╚═╝
 * Generated with this fancy tool:
 * - https://www.coolgenerator.com/ascii-text-generator
+* Repository:
+* - https://github.com/aamott/petinator
 *
 *****************************************************/
 
