@@ -1,4 +1,4 @@
-# petinator
+# PETInator
 ### Firmware for bottle-to-filament machines
 
 Bottle-to-filament machines are what I call the likes of [Petamentor](https://petamentor.com/) and [The Recreator 3D](http://recreator3d.com/). These machines use hacked PID controllers and PWM motor controllers or old 3D printer parts. Each one costs more than I could justify for 25 grams of filament at a time, although I won't deny their ingenuity and effectiveness. Still, it left a hole in my heart.  
