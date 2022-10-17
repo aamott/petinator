@@ -13,17 +13,24 @@ Most changes should be made inside configuration.h, including default stepper sp
     - Heater (12v or 24v, just match your power supply)
     - Thermistor
 - Stepper motor - If you can, just upgrade your extruder and steal its stepper. I love the [SuperFly remix](https://www.thingiverse.com/thing:4914090) and [this stepper](https://www.aliexpress.us/item/3256804155557680.html)
+    or
+- [DC Gear Motor](https://www.amazon.com/Fielect-JGB37-500-Micro-Reduction-Engine/dp/B08Y5MJL1J?crid=165S4TL5CYW7&keywords=12v%2B7rpm%2Bdc%2Bmotor&qid=1660206413&sprefix=12v%2B7rpm,aps,167&sr=8-8&th=1&linkCode=sl1&tag=getparts-20&linkId=e1320b5e9f62f1e8d332ea0036dc7b8d&language=en_US&ref_=as_li_ss_tl)
 - Stepper Driver, like the [A4988](https://www.aliexpress.us/item/2251832433524521.html). Solder a 47uf or more capacitor across `VMOT` and `GND`. Bigger is fine.  
+    or
+- [PWM motor driver](https://www.aliexpress.us/item/2251832828149067.html)
 - Arduino [Nano](https://www.aliexpress.us/item/2255800400953393.html) or Uno
 - [A Mosfet](https://www.aliexpress.us/item/3256801931155937.html) (solder a 200 ohm or so resistor across R5)
-- A 200 ohm or so resistor. Go a little higher if needed. 
 - [1602 LCD with I2C](https://www.aliexpress.us/item/2251832577552289.html)
+
+### Definitely Salvageable
 - [3 buttons](https://www.aliexpress.us/item/3256803815119722.html) - or the [bougie choice](https://www.aliexpress.us/item/3256801497578459.html). Wire it like the bottom picture for an always-on LED.
+- Power supply - close to [60 watts at 12v](https://www.aliexpress.us/item/2251832856038008.html) or [100 watts 24v](https://www.aliexpress.us/item/3256804001173742.html). Thrift stores are a good bet. 
 - Power switch - For a [wired power supply](https://www.aliexpress.us/item/3256803288712514.html) or a [plug-in power supply](https://www.aliexpress.us/item/3256802413254789.html)
 - [Power plug](https://www.aliexpress.us/item/3256802728205272.html) or [pre-wired](https://www.aliexpress.us/item/2255800167561413.html) if using a plug-in supply
-- Power supply - close to [60 watts at 12v](https://www.aliexpress.us/item/2251832856038008.html) or [100 watts 24v](https://www.aliexpress.us/item/3256804001173742.html). Thrift stores are a good bet. 
 - Various wires. Salvage from a USB cable if you need. Power wires can be salvaged from the hotend. You don't need more than they provide. 
-- [90 degree corner bracket](https://www.aliexpress.us/item/2251832748236574.html)
+- [90 degree corner bracket](https://www.aliexpress.us/item/2251832748236574.html). Mine is IKEA!
+- A 200 ohm or so resistor for the Mosfet. Go a little higher if needed.
+- 47uf or more capacitor for the stepper driver. Bigger is fine.
 
 
 # Instructions
