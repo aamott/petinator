@@ -18,6 +18,7 @@
 #define THERMISTOR_TYPE 5 // See https://github.com/miguel5612/Arduino-ThermistorLibrary for possible values
 #define TEMP_READ_DELAY 100 // how frequently the thermistor should be read
 #define MAX_TEMP 230
+#define DEFAULT_TEMP 198 // default temp to use as target
 #define TEMP_VARIANCE 3 // range in which the stepper should be allowed to run
 #define TEMP_INCREMENT_SIZE 1 // How much temp jumps each button press
 
@@ -32,7 +33,6 @@
 #define KI .92 //0.92
 #define KD 0.1 // 0.1
 
-#define DEFAULT_TEMP 98 // default temp to use as target
 #define BANG_BANG_RANGE 4 // higher or lower than BANG_BANG_RANGE will not use PID
 
 
