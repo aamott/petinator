@@ -336,7 +336,7 @@ void setup()
     heaterPID.setTimeStep(TEMP_READ_DELAY);
 
     /***********
-     * Stepper
+     * Puller
      */
     #ifdef USES_STEPPER
     engine.init();
