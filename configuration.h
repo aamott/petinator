@@ -39,7 +39,7 @@
 /******************************************
 * Puller Motor
 */
-// #define USES_STEPPER // if a stepper is not used, a DC motor is assumed
+#define USES_STEPPER // if a stepper is not used, a DC motor is assumed
 #ifdef USES_STEPPER
     #define MAX_SPEED 30000 // in steps per second
     #define ACCELERATION 5000
