@@ -52,10 +52,10 @@ The most helpful visual is probably this simulation on Wokwi: [Simulation with s
 5. Upload the code to your Arduino (or ESP32).
 6. Test and tune the PID values and motor speed as needed and reupload.
 
-# TODO: 
-- [ ] Thermal panic protection when:
-    - [ ] Temperature doesn't change fast enough when outside range
-    - [ ] Temperature suddenly changes by more than x degrees
-- [ ] Store settings between shutdowns
-- [ ] PID Autotune
-- [ ] PID puller speed control when PWM motor is used
+# How to Contribute
+Check the [Issues](https://github.com/aamott/petinator/issues) tab and look for issues marked with "good first issue". 
+
+When making changes, the try to do the following: 
+- Maintain the default Arduino code formatting. If you need to, open the arduino editor and use the auto-format option (Ctrl+T) before committing your changes. 
+- Leave comments. The best comment is clear code, but comments are the Rosetta Stone to a budding coder. *Essential* in configuration files. 
+- Be somewhat granular in your commits. This is a good practice in general. It makes it easy to back out small changes without losing a lot of work. 
