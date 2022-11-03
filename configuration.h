@@ -29,12 +29,22 @@
 */
 #define OUTPUT_MIN 0
 #define OUTPUT_MAX 255
-#define KP .22 //0.22
-#define KI .92 //0.92
-#define KD 0.1 // 0.1
+#define DEFAULT_KP .22 //0.22
+#define DEFAULT_KI .92 //0.92
+#define DEFAULT_KD 0.1 // 0.1
+float KP,KI,KD;
 
 #define BANG_BANG_RANGE 4 // higher or lower than BANG_BANG_RANGE will not use PID
 
+/******************************************
+* EEPROM
+* addresses for persisted data
+*/
+const int TtAddress = 0;
+const int KpAddress = 8;
+const int KiAddress = 16;
+const int KdAddress = 24;
+const int TsAddress = 32;
 
 /******************************************
 * Puller Motor

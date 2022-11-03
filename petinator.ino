@@ -20,6 +20,7 @@
 #include <LiquidCrystal.h>
 #include <FastAccelStepper.h>
 #include <ezButton.h>
+#include <EEPROM.h>
 
 #include "configuration.h"
 
@@ -240,6 +241,85 @@ void toggle_puller()
 #endif
 
 /******************************************
+ * EEPROM
+ */
+void SaveParameters()
+{
+   if (target_temp != EEPROM_readDouble(TtAddress))
+   {
+      EEPROM_writeDouble(TtAddress, target_temp);
+   }
+   if (KP != EEPROM_readDouble(KpAddress))
+   {
+      EEPROM_writeDouble(KpAddress, KP);
+   }
+   if (KI != EEPROM_readDouble(KiAddress))
+   {
+      EEPROM_writeDouble(KiAddress, KI);
+   }
+   if (KD != EEPROM_readDouble(KdAddress))
+   {
+      EEPROM_writeDouble(KdAddress, KD);
+   }
+   if (target_speed != EEPROM_readDouble(TsAddress))
+   {
+      EEPROM_writeDouble(TsAddress, target_speed);
+   }
+}
+
+void LoadParameters()
+{
+  // Load from EEPROM
+   target_temp = EEPROM_readDouble(TtAddress);
+   KP = EEPROM_readDouble(KpAddress);
+   KI = EEPROM_readDouble(KiAddress);
+   KD = EEPROM_readDouble(KdAddress);
+   target_speed = EEPROM_readDouble(TsAddress);
+   
+   // Use defaults if EEPROM values are invalid
+   if (isnan(target_temp))
+   {
+     target_temp = DEFAULT_TEMP;
+   }
+   if (isnan(KP))
+   {
+     KD = DEFAULT_KP;
+   }
+   if (isnan(KI))
+   {
+     KI = DEFAULT_KI;
+   }
+   if (isnan(KD))
+   {
+     KD = DEFAULT_KD;
+   }  
+   if (isnan(target_speed))
+   {
+     target_speed = DEFAULT_SPEED;
+   }  
+}
+
+void EEPROM_writeDouble(int address, double value)
+{
+   byte* p = (byte*)(void*)&value;
+   for (int i = 0; i < sizeof(value); i++)
+   {
+      EEPROM.write(address++, *p++);
+   }
+}
+
+double EEPROM_readDouble(int address)
+{
+   double value = 0.0;
+   byte* p = (byte*)(void*)&value;
+   for (int i = 0; i < sizeof(value); i++)
+   {
+      *p++ = EEPROM.read(address++);
+   }
+   return value;
+}
+
+/******************************************
  * Buttons
  */
 long last_press_time = 0;
@@ -326,6 +406,12 @@ void setup()
 #endif
 
     lcd.begin(COLUMNS, ROWS);
+
+    /***********
+     * EEPROM
+     */
+    LoadParameters();
+    heaterPID.setGains(KP, KI, KD);
 
     /***********
      * Temp
