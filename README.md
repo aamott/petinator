@@ -1,6 +1,8 @@
 # PETInator
 ### Firmware for bottle-to-filament machines
 
+[Simulation with stepper motor puller](https://wokwi.com/projects/333363618182595154)
+
 Bottle-to-filament machines are what I call the likes of [Petamentor](https://petamentor.com/) and [The Recreator 3D](http://recreator3d.com/). These machines use hacked PID controllers and PWM motor controllers or 3D printer parts running Marlin. If pultrusion is going to grow, it should be controlled from one board without having to use an entire Marlin interface.
 
 Introducing the PETInator, a full firmware with PID temperature control, stepper or DC motor control, and a lot of room for growth.  Follow the wiring in the demo or using the pinout inside configuration.h  
