@@ -367,10 +367,8 @@ void setup()
     set_speed_line.attach_function(2, decrease_speed);
 
     enable_heater_line.attach_function(1, toggle_heater);
-    enable_heater_line.attach_function(2, toggle_heater);
 
     enable_puller_line.attach_function(1, toggle_puller);
-    enable_puller_line.attach_function(2, toggle_puller);
     // start_line.attach_function(1, toggle_running);
 
     set_temp_line.set_decimalPlaces(0);
@@ -490,13 +488,22 @@ void loop()
 
     if (select_pressed)
     {
-        if (controlState + 1 < CTRL_OUT_OF_BOUNDS)
+        // if the line has two functions, it uses both arrows and needs control state changed
+        if (menu.is_callable(2))
         {
-            controlState = (ControlState)(controlState + 1);
+            if (controlState + 1 < CTRL_OUT_OF_BOUNDS)
+            {
+                controlState = (ControlState)(controlState + 1);
+            }
+            else
+            {
+                controlState = 1;
+            }
         }
+        // otherwise, it is either a status or a button. Just try to run the function.
         else
         {
-            controlState = 1;
+            menu.call_function(1);
         }
     }
 }
