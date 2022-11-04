@@ -64,7 +64,7 @@
 */
 // Use display with I2C controller
 // requires changing LiquidMenu_config.h - see https://github.com/VaSe7u/LiquidMenu/issues/36
-#define I2C_LCD
+// #define I2C_LCD
 
 // 1602 display would be 2 rows, 16 columns
 #define COLUMNS 16
