@@ -10,11 +10,11 @@ Introducing the PETInator, a full firmware with PID temperature control, stepper
 ## Example setup
 Here are a few pictures of what I'm using. It's a jumbled mess of noncommital wiring, but that's because once I'm satisfied with its pulling force, I intend to make the smallest pullstruder you've ever seen. Please forgive the poor photo quality. When I'm happy with the puller V1, I'll take better photos. 
 
-![Alt text](../../../../../../../C:/Users/adama/OneDrive/Documents/Arduino/petinator/photos/pullstruder-messy.jpg)
+![Alt text](photos/pullstruder-messy.jpg)
 
-![Alt text](../../../../../../../C:/Users/adama/OneDrive/Documents/Arduino/petinator/photos/heater.jpg)
+![Alt text](photos/heater.jpg)
 
-![Alt text](../../../../../../../C:/Users/adama/OneDrive/Documents/Arduino/petinator/photos/puller.jpg)
+![Alt text](photos/puller.jpg)
 
 
 
