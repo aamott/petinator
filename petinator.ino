@@ -243,6 +243,8 @@ void toggle_puller()
 /******************************************
  * EEPROM
  */
+int saving_status = 0;
+
 void SaveParameters()
 {
    if (target_temp != EEPROM_readDouble(TtAddress))
@@ -265,6 +267,7 @@ void SaveParameters()
    {
       EEPROM_writeDouble(TsAddress, target_speed);
    }
+   saving_status = "Saved";
 }
 
 void LoadParameters()
@@ -388,6 +391,10 @@ LiquidLine set_speed_line(0, 3, "Set Speed: ", target_speed);
 LiquidLine enable_heater_line(0, 4, "Start Heater: ", heatingEnabled);
 LiquidLine enable_puller_line(0, 5, "Start Puller: ", pullingEnabled);
 // LiquidScreen enable_screen(enable_heater_line, enable_puller_line, set_temp_line, set_speed_line, actual_temp_line, actual_speed_line);
+
+//  EEPROM
+LiquidLine save_parameters_line(0, 6, "Save: ", saving_status);
+
 // LiquidLine start_line(0, 0, "Start: ", menu_message);
 // LiquidScreen enable_screen(start_line);
 LiquidScreen main_screen;
@@ -459,6 +466,8 @@ void setup()
     enable_puller_line.attach_function(2, toggle_puller);
     // start_line.attach_function(1, toggle_running);
 
+    save_parameters_line.attach_function(1, SaveParameters);
+
     set_temp_line.set_decimalPlaces(0);
     actual_temp_line.set_decimalPlaces(0);
 
@@ -468,6 +477,7 @@ void setup()
     main_screen.add_line(set_speed_line);
     main_screen.add_line(actual_temp_line);
     main_screen.add_line(actual_speed_line);
+    main_screen.add_line(save_parameters_line);
     main_screen.set_displayLineCount(2);
     // menu.add_screen(welcome_screen);
     // menu.add_screen(status_screen);
