@@ -61,3 +61,4 @@ When making changes, the try to do the following:
 - Maintain the default Arduino code formatting. If you need to, open the arduino editor and use the auto-format option (Ctrl+T) before committing your changes. 
 - Leave comments. The best comment is clear code, but comments are the Rosetta Stone to a budding coder. *Essential* in configuration files. 
 - Be somewhat granular in your commits. This is a good practice in general. It makes it easy to back out small changes without losing a lot of work. 
+- Upload any photos you find on the discussion tab.
