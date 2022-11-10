@@ -5,9 +5,18 @@
 
 Bottle-to-filament machines are what I call the likes of [Petamentor](https://petamentor.com/) and [The Recreator 3D](http://recreator3d.com/). These machines use hacked PID controllers and PWM motor controllers or 3D printer parts running Marlin. If pultrusion is going to grow, it should be controlled from one board without having to use an entire Marlin interface.
 
-Introducing the PETInator, a full firmware with PID temperature control, stepper or DC motor control, and a lot of room for growth.  Follow the wiring in the demo or using the pinout inside configuration.h  
+Introducing the PETInator, a full firmware with PID temperature control, stepper or DC motor control, and a lot of room for growth.  Follow the wiring in the demo or using the pinout inside configuration.h. Most changes should be made inside configuration.h, including default stepper speed, default temperature, and pinout. 
 
-Most changes should be made inside configuration.h, including default stepper speed, default temperature, and pinout. 
+## Example setup
+Here are a few pictures of what I'm using. It's a jumbled mess of noncommital wiring, but that's because once I'm satisfied with its pulling force, I intend to make the smallest pullstruder you've ever seen. Please forgive the poor photo quality. When I'm happy with the puller V1, I'll take better photos. 
+
+![Alt text](../../../../../../../C:/Users/adama/OneDrive/Documents/Arduino/petinator/photos/pullstruder-messy.jpg)
+
+![Alt text](../../../../../../../C:/Users/adama/OneDrive/Documents/Arduino/petinator/photos/heater.jpg)
+
+![Alt text](../../../../../../../C:/Users/adama/OneDrive/Documents/Arduino/petinator/photos/puller.jpg)
+
+
 
 # Features
 - Stepper-driven and PWM-motor-driven puller options
