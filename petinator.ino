@@ -99,7 +99,7 @@ void toggle_heater()
  * Motor
  */
 long target_speed = DEFAULT_SPEED;
-int pullingEnabled = false;
+bool pullingEnabled = false;
 
 #ifdef USES_STEPPER
 FastAccelStepperEngine engine = FastAccelStepperEngine();
@@ -141,8 +141,8 @@ void increase_speed()
     }
     if (stepper->isRunning())
     {
-      stepper->setSpeedInHz(target_speed);
-      stepper->runForward();
+        stepper->setSpeedInHz(target_speed);
+        stepper->runForward();
     }
 }
 
@@ -155,22 +155,16 @@ void decrease_speed()
     }
     if (stepper->isRunning())
     {
-      stepper->setSpeedInHz(target_speed);
-      stepper->runForward();
+        stepper->setSpeedInHz(target_speed);
+        stepper->runForward();
     }
 }
 
 void toggle_puller()
 {
-    if (pullingEnabled)
-    {
-        // stepper->stopMove();
-        pullingEnabled = false;
-    }
-    else
-    {
-        pullingEnabled = true;
-    }
+
+    // if(pullingEnabled) stepper->stopMove();
+    pullingEnabled = !pullingEnabled;
 }
 #else // end USES_STEPPER, start USES_PWM_MOTOR
 bool motor_running = false;
@@ -290,7 +284,6 @@ LiquidCrystal lcd(LCD_RS, LCD_E, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 #endif
 
 LiquidLine welcome_line1(4, 0, "Welcome");
-// Here the column is 3, the row is 1 and the string is "Hello Menu".
 LiquidLine welcome_line2(1, 1, "To Filamaker");
 LiquidScreen welcome_screen(welcome_line1, welcome_line2);
 
@@ -335,10 +328,10 @@ void setup()
     // set PID update interval
     heaterPID.setTimeStep(TEMP_READ_DELAY);
 
-    /***********
-     * Puller
-     */
-    #ifdef USES_STEPPER
+/***********
+ * Puller
+ */
+#ifdef USES_STEPPER
     engine.init();
     stepper = engine.stepperConnectToPin(STEP_PIN);
     if (stepper)
@@ -350,12 +343,12 @@ void setup()
         stepper->setSpeedInHz(target_speed);
         stepper->setAcceleration(ACCELERATION);
     }
-    #else // a DC motor is assumed
-      pinMode(MOTOR_PWM_PIN, OUTPUT);
-      pinMode(DIR_PIN, OUTPUT);
-      pinMode(ENABLE_PIN, OUTPUT);
-      digitalWrite(ENABLE_PIN, 1); // disable motor
-    #endif
+#else // a DC motor is assumed
+    pinMode(MOTOR_PWM_PIN, OUTPUT);
+    pinMode(DIR_PIN, OUTPUT);
+    pinMode(ENABLE_PIN, OUTPUT);
+    digitalWrite(ENABLE_PIN, 1); // disable motor
+#endif
 
     /***********
      * Menu
@@ -497,7 +490,7 @@ void loop()
             }
             else
             {
-                controlState = 1;
+                controlState = CTRL_SET_LINE;
             }
         }
         // otherwise, it is either a status or a button. Just try to run the function.
