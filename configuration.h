@@ -77,11 +77,8 @@
 /******************************************
 * Pinout
 * Physical pins used
-* Note: Step pin must be PWM capable. 
-* See https://github.com/gin66/FastAccelStepper
-* for a list of usable pins.
 *******************************************/
-#define THERMISTOR_PIN A0 // Must be an analog pin
+#define THERMISTOR_PIN A0 // Analog input
 #define HEATER_PIN 6
 
 #define UP_BTN 12
@@ -92,10 +89,11 @@
 #define ENABLE_PIN 7
 #define DIR_PIN 8
 // Motor driving pins, whether stepper or not, should be PWM capable
+// https://github.com/gin66/FastAccelStepper for details
 #ifdef USES_STEPPER
-  #define STEP_PIN 9
+  #define STEP_PIN 9 // PWM capable
 #else
-  #define MOTOR_PWM_PIN 9
+  #define MOTOR_PWM_PIN 9 // PWM capable
 #endif
 
 // LCD
