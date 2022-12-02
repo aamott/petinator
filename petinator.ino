@@ -240,20 +240,19 @@ void toggle_puller()
  * EEPROM
  */
 bool saved_status = false;
-double initialized = EEPROM_INITIALIZED_SIGN;
 
 // variable addresses - each one needs enough space for itself,
 // hence the use of sizeof(previous variable)
 const int initialized_address = 0;
-const int TtAddress = 0 + sizeof(initialized);
+const int TtAddress = initialized_address + sizeof(int(EEPROM_INITIALIZED_SIGN));
 const int KpAddress = TtAddress + sizeof(target_temp);
 const int KiAddress = KpAddress + sizeof(KP);
 const int KdAddress = KiAddress + sizeof(KI);
-const int TsAddress = TsAddress + sizeof(KD);
+const int TsAddress = KdAddress + sizeof(KD);
 
 bool eeprom_initialized() 
 {
-    double sign = 0;
+    int sign;
     EEPROM.get(initialized_address, sign);
     return sign == EEPROM_INITIALIZED_SIGN;
 }

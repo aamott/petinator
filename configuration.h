@@ -55,7 +55,7 @@
 /******************************************
  * EEPROM
 */
-#define EEPROM_INITIALIZED_SIGN 12297829382473000000 // in binary, 101010...010
+#define EEPROM_INITIALIZED_SIGN -10922 //binary 1010101010101010
 
 /******************************************
 * Buttons
