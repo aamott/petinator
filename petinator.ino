@@ -303,28 +303,6 @@ void LoadParameters()
    KI = EEPROM_readDouble(KiAddress);
    KD = EEPROM_readDouble(KdAddress);
    target_speed = EEPROM_readDouble(TsAddress);
-   
-   // Use defaults if EEPROM values are invalid
-   if (isnan(target_temp))
-   {
-     target_temp = DEFAULT_TEMP;
-   }
-   if (isnan(KP))
-   {
-     KD = DEFAULT_KP;
-   }
-   if (isnan(KI))
-   {
-     KI = DEFAULT_KI;
-   }
-   if (isnan(KD))
-   {
-     KD = DEFAULT_KD;
-   }  
-   if (isnan(target_speed))
-   {
-     target_speed = DEFAULT_SPEED;
-   }  
 }
 
 void EEPROM_writeDouble(int address, double value)
