@@ -295,14 +295,22 @@ void SaveParameters()
 
 void LoadParameters()
 {
-  // check if eeprom is empty
-  if ( !eeprom_initialized)
-  // Load from EEPROM
-   target_temp = EEPROM_readDouble(TtAddress);
-   KP = EEPROM_readDouble(KpAddress);
-   KI = EEPROM_readDouble(KiAddress);
-   KD = EEPROM_readDouble(KdAddress);
-   target_speed = EEPROM_readDouble(TsAddress);
+  if ( eeprom_initialized ) { 
+    // Load from EEPROM
+    target_temp = EEPROM_readDouble(TtAddress);
+    KP = EEPROM_readDouble(KpAddress);
+    KI = EEPROM_readDouble(KiAddress);
+    KD = EEPROM_readDouble(KdAddress);
+    target_speed = EEPROM_readDouble(TsAddress);
+  }
+  else 
+  {
+    target_temp = DEFAULT_TEMP;
+    KP = DEFAULT_KP;
+    KI = DEFAULT_KI;
+    KD = DEFAULT_KD;
+    target_speed = DEFAULT_SPEED;
+  }
 }
 
 void EEPROM_writeDouble(int address, double value)
