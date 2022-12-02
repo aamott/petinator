@@ -59,6 +59,8 @@ double heater_pwm = 0;             // heater's pwm will be controlled by this va
 double last_pwm = 0;               // keeps track of the last value for less frequent updating
 bool heatingEnabled = false;
 
+float KP = DEFAULT_KP, KI = DEFAULT_KI, KD = DEFAULT_KD;
+
 // input/output variables passed by reference, so they are updated automatically
 AutoPID heaterPID(&current_temp, &temp_set_point, &heater_pwm, OUTPUT_MIN, OUTPUT_MAX, KP, KI, KD);
 
@@ -294,7 +296,7 @@ void SaveParameters()
 void LoadParameters()
 {
   // check if eeprom is empty
-
+  if ( !eeprom_initialized)
   // Load from EEPROM
    target_temp = EEPROM_readDouble(TtAddress);
    KP = EEPROM_readDouble(KpAddress);

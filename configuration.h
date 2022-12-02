@@ -32,7 +32,6 @@
 #define DEFAULT_KP .22 //0.22
 #define DEFAULT_KI .92 //0.92
 #define DEFAULT_KD 0.1 // 0.1
-float KP,KI,KD;
 
 #define BANG_BANG_RANGE 4 // higher or lower than BANG_BANG_RANGE will not use PID
 
