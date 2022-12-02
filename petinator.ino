@@ -35,28 +35,26 @@
  *    Resistor (4.7K)      ==> A0
  *    Resistor (4.7K)      ==> Vcc (5v)
  */
-unsigned long lastTempUpdate; // tracks clock time of last temp update
-double current_temp = 0;      // celsius
-double last_temp = 0;         // celsius
+unsigned long lastTempUpdate;  // tracks clock time of last temp update
+double current_temp = 0;       // celsius
+double last_temp = 0;          // celsius
 thermistor temp_sensor(THERMISTOR_PIN, THERMISTOR_TYPE);
 
-bool updateTemperature()
-{
-    if ((millis() - lastTempUpdate) > TEMP_READ_DELAY)
-    {
-        current_temp = temp_sensor.analog2temp(); // get temp reading
-        lastTempUpdate = millis();
-    }
+bool updateTemperature() {
+  if ((millis() - lastTempUpdate) > TEMP_READ_DELAY) {
+    current_temp = temp_sensor.analog2temp();  // get temp reading
+    lastTempUpdate = millis();
+  }
 }
 
 /*******************
  * PID
  * pid settings and gains
  */
-double target_temp = DEFAULT_TEMP; // when enabled, temp_set_point will be set to this
-double temp_set_point = 0;         // the value used by autopid
-double heater_pwm = 0;             // heater's pwm will be controlled by this value
-double last_pwm = 0;               // keeps track of the last value for less frequent updating
+double target_temp = DEFAULT_TEMP;  // when enabled, temp_set_point will be set to this
+double temp_set_point = 0;          // the value used by autopid
+double heater_pwm = 0;              // heater's pwm will be controlled by this value
+double last_pwm = 0;                // keeps track of the last value for less frequent updating
 bool heatingEnabled = false;
 
 float KP = DEFAULT_KP, KI = DEFAULT_KI, KD = DEFAULT_KD;
@@ -64,38 +62,29 @@ float KP = DEFAULT_KP, KI = DEFAULT_KI, KD = DEFAULT_KD;
 // input/output variables passed by reference, so they are updated automatically
 AutoPID heaterPID(&current_temp, &temp_set_point, &heater_pwm, OUTPUT_MIN, OUTPUT_MAX, KP, KI, KD);
 
-void increase_temp()
-{
-    if (target_temp + TEMP_VARIANCE < MAX_TEMP)
-    {
-        target_temp += TEMP_INCREMENT_SIZE;
-        if (heatingEnabled)
-        {
-            temp_set_point = target_temp;
-        }
+void increase_temp() {
+  if (target_temp + TEMP_VARIANCE < MAX_TEMP) {
+    target_temp += TEMP_INCREMENT_SIZE;
+    if (heatingEnabled) {
+      temp_set_point = target_temp;
     }
+  }
 }
 
-void decrease_temp()
-{
-    target_temp -= TEMP_INCREMENT_SIZE;
-    if (heatingEnabled)
-    {
-        temp_set_point = target_temp;
-    }
+void decrease_temp() {
+  target_temp -= TEMP_INCREMENT_SIZE;
+  if (heatingEnabled) {
+    temp_set_point = target_temp;
+  }
 }
 
-void toggle_heater()
-{
-    heatingEnabled = !heatingEnabled;
-    if (heatingEnabled)
-    {
-        temp_set_point = target_temp;
-    }
-    else
-    {
-        temp_set_point = 0;
-    }
+void toggle_heater() {
+  heatingEnabled = !heatingEnabled;
+  if (heatingEnabled) {
+    temp_set_point = target_temp;
+  } else {
+    temp_set_point = 0;
+  }
 }
 
 /******************************************
@@ -117,121 +106,94 @@ FastAccelStepper *stepper = NULL;
  * for too long)
  * then rename the function to remain descriptive
  */
-void runMotorIfTempReached(double current_temp, double target_temp)
-{
-    if (pullingEnabled && current_temp >= target_temp - TEMP_VARIANCE)
-    {
-        // Temp is reached
-        if (!stepper->isRunning())
-        {
-            // only tell the stepper to run if it isn't already
-            stepper->runForward();
-        }
+void runMotorIfTempReached(double current_temp, double target_temp) {
+  if (pullingEnabled && current_temp >= target_temp - TEMP_VARIANCE) {
+    // Temp is reached
+    if (!stepper->isRunning()) {
+      // only tell the stepper to run if it isn't already
+      stepper->runForward();
     }
-    else if (stepper->isRunning())
-    {
-        // Don't run stepper until temp is reached
-        stepper->stopMove();
-    }
+  } else if (stepper->isRunning()) {
+    // Don't run stepper until temp is reached
+    stepper->stopMove();
+  }
 }
 
-void increase_speed()
-{
-    target_speed += SPEED_INC;
-    if (target_speed > MAX_SPEED)
-    {
-        target_speed = MAX_SPEED;
-    }
-    if (stepper->isRunning())
-    {
-        stepper->setSpeedInHz(target_speed);
-        stepper->runForward();
-    }
+void increase_speed() {
+  target_speed += SPEED_INC;
+  if (target_speed > MAX_SPEED) {
+    target_speed = MAX_SPEED;
+  }
+  if (stepper->isRunning()) {
+    stepper->setSpeedInHz(target_speed);
+    stepper->runForward();
+  }
 }
 
-void decrease_speed()
-{
-    target_speed -= SPEED_INC;
-    if (target_speed < 0)
-    {
-        target_speed = 0;
-    }
-    if (stepper->isRunning())
-    {
-        stepper->setSpeedInHz(target_speed);
-        stepper->runForward();
-    }
+void decrease_speed() {
+  target_speed -= SPEED_INC;
+  if (target_speed < 0) {
+    target_speed = 0;
+  }
+  if (stepper->isRunning()) {
+    stepper->setSpeedInHz(target_speed);
+    stepper->runForward();
+  }
 }
 
-void toggle_puller()
-{
+void toggle_puller() {
 
-    // if(pullingEnabled) stepper->stopMove();
-    pullingEnabled = !pullingEnabled;
+  // if(pullingEnabled) stepper->stopMove();
+  pullingEnabled = !pullingEnabled;
 }
-#else // end USES_STEPPER, start USES_PWM_MOTOR
+#else  // end USES_STEPPER, start USES_PWM_MOTOR
 bool motor_running = false;
 /***************************
  * Run Motor if Temp Reached
  */
-void runMotorIfTempReached(double current_temp, double target_temp)
-{
-    if (pullingEnabled && current_temp >= target_temp - TEMP_VARIANCE)
-    {
-        // Temp is reached
-        if (!motor_running)
-        {
-            // only tell the motor to run if it isn't already
-            motor_running = true;
-            analogWrite(MOTOR_PWM_PIN, target_speed);
-            digitalWrite(ENABLE_PIN, 0);
-        }
+void runMotorIfTempReached(double current_temp, double target_temp) {
+  if (pullingEnabled && current_temp >= target_temp - TEMP_VARIANCE) {
+    // Temp is reached
+    if (!motor_running) {
+      // only tell the motor to run if it isn't already
+      motor_running = true;
+      analogWrite(MOTOR_PWM_PIN, target_speed);
+      digitalWrite(ENABLE_PIN, 0);
     }
-    else if (motor_running)
-    {
-        // Don't run motor until temp is reached
-        motor_running = false;
-        digitalWrite(MOTOR_PWM_PIN, 0);
-        digitalWrite(ENABLE_PIN, 1);
-    }
+  } else if (motor_running) {
+    // Don't run motor until temp is reached
+    motor_running = false;
+    digitalWrite(MOTOR_PWM_PIN, 0);
+    digitalWrite(ENABLE_PIN, 1);
+  }
 }
 
-void increase_speed()
-{
-    target_speed += SPEED_INC;
-    if (target_speed > MAX_SPEED)
-    {
-        target_speed = MAX_SPEED;
-    }
-    if (motor_running)
-    {
-        analogWrite(MOTOR_PWM_PIN, target_speed);
-    }
+void increase_speed() {
+  target_speed += SPEED_INC;
+  if (target_speed > MAX_SPEED) {
+    target_speed = MAX_SPEED;
+  }
+  if (motor_running) {
+    analogWrite(MOTOR_PWM_PIN, target_speed);
+  }
 }
 
-void decrease_speed()
-{
-    target_speed -= SPEED_INC;
-    if (target_speed < 0)
-    {
-        target_speed = 0;
-    }
-    if (motor_running)
-    {
-        analogWrite(MOTOR_PWM_PIN, target_speed);
-    }
+void decrease_speed() {
+  target_speed -= SPEED_INC;
+  if (target_speed < 0) {
+    target_speed = 0;
+  }
+  if (motor_running) {
+    analogWrite(MOTOR_PWM_PIN, target_speed);
+  }
 }
 
-void toggle_puller()
-{
-    if (pullingEnabled)
-    {
-        pullingEnabled = false;
-    }
-    else
-    {
-        pullingEnabled = true;
-    }
+void toggle_puller() {
+  if (pullingEnabled) {
+    pullingEnabled = false;
+  } else {
+    pullingEnabled = true;
+  }
 }
 // END USES_PWM_MOTOR
 #endif
@@ -250,87 +212,71 @@ const int KiAddress = KpAddress + sizeof(KP);
 const int KdAddress = KiAddress + sizeof(KI);
 const int TsAddress = KdAddress + sizeof(KD);
 
-bool eeprom_initialized()
-{
-    int sign;
-    EEPROM.get(initialized_address, sign);
-    return sign == EEPROM_INITIALIZED_SIGN;
+bool eeprom_initialized() {
+  int sign;
+  EEPROM.get(initialized_address, sign);
+  return sign == EEPROM_INITIALIZED_SIGN;
 }
 
-void InitializeEeprom()
-{
-    EEPROM.put(initialized_address, EEPROM_INITIALIZED_SIGN);
-    EEPROM_writeDouble(TtAddress, DEFAULT_TEMP);
-    EEPROM_writeDouble(KpAddress, DEFAULT_KP);
-    EEPROM_writeDouble(KiAddress, DEFAULT_KI);
-    EEPROM_writeDouble(KdAddress, DEFAULT_KD);
-    EEPROM_writeDouble(TsAddress, DEFAULT_SPEED);
+void InitializeEeprom() {
+  EEPROM.put(initialized_address, EEPROM_INITIALIZED_SIGN);
+  EEPROM_writeDouble(TtAddress, DEFAULT_TEMP);
+  EEPROM_writeDouble(KpAddress, DEFAULT_KP);
+  EEPROM_writeDouble(KiAddress, DEFAULT_KI);
+  EEPROM_writeDouble(KdAddress, DEFAULT_KD);
+  EEPROM_writeDouble(TsAddress, DEFAULT_SPEED);
 }
 
-void SaveParameters()
-{
-    if (target_temp != EEPROM_readDouble(TtAddress))
-    {
-        EEPROM_writeDouble(TtAddress, target_temp);
-    }
-    if (KP != EEPROM_readDouble(KpAddress))
-    {
-        EEPROM_writeDouble(KpAddress, KP);
-    }
-    if (KI != EEPROM_readDouble(KiAddress))
-    {
-        EEPROM_writeDouble(KiAddress, KI);
-    }
-    if (KD != EEPROM_readDouble(KdAddress))
-    {
-        EEPROM_writeDouble(KdAddress, KD);
-    }
-    if (target_speed != EEPROM_readDouble(TsAddress))
-    {
-        EEPROM_writeDouble(TsAddress, target_speed);
-    }
-    saved_status = true;
+void SaveParameters() {
+  if (target_temp != EEPROM_readDouble(TtAddress)) {
+    EEPROM_writeDouble(TtAddress, target_temp);
+  }
+  if (KP != EEPROM_readDouble(KpAddress)) {
+    EEPROM_writeDouble(KpAddress, KP);
+  }
+  if (KI != EEPROM_readDouble(KiAddress)) {
+    EEPROM_writeDouble(KiAddress, KI);
+  }
+  if (KD != EEPROM_readDouble(KdAddress)) {
+    EEPROM_writeDouble(KdAddress, KD);
+  }
+  if (target_speed != EEPROM_readDouble(TsAddress)) {
+    EEPROM_writeDouble(TsAddress, target_speed);
+  }
+  saved_status = true;
 }
 
-void LoadParameters()
-{
-    if (eeprom_initialized)
-    {
-        // Load from EEPROM
-        target_temp = EEPROM_readDouble(TtAddress);
-        KP = EEPROM_readDouble(KpAddress);
-        KI = EEPROM_readDouble(KiAddress);
-        KD = EEPROM_readDouble(KdAddress);
-        target_speed = EEPROM_readDouble(TsAddress);
-    }
-    else
-    {
-        target_temp = DEFAULT_TEMP;
-        KP = DEFAULT_KP;
-        KI = DEFAULT_KI;
-        KD = DEFAULT_KD;
-        target_speed = DEFAULT_SPEED;
-    }
+void LoadParameters() {
+  if (eeprom_initialized) {
+    // Load from EEPROM
+    target_temp = EEPROM_readDouble(TtAddress);
+    KP = EEPROM_readDouble(KpAddress);
+    KI = EEPROM_readDouble(KiAddress);
+    KD = EEPROM_readDouble(KdAddress);
+    target_speed = EEPROM_readDouble(TsAddress);
+  } else {
+    target_temp = DEFAULT_TEMP;
+    KP = DEFAULT_KP;
+    KI = DEFAULT_KI;
+    KD = DEFAULT_KD;
+    target_speed = DEFAULT_SPEED;
+  }
 }
 
-void EEPROM_writeDouble(int address, double value)
-{
-    byte *p = (byte *)(void *)&value;
-    for (int i = 0; i < sizeof(value); i++)
-    {
-        EEPROM.write(address++, *p++);
-    }
+void EEPROM_writeDouble(int address, double value) {
+  byte *p = (byte *)(void *)&value;
+  for (int i = 0; i < sizeof(value); i++) {
+    EEPROM.write(address++, *p++);
+  }
 }
 
-double EEPROM_readDouble(int address)
-{
-    double value = 0.0;
-    byte *p = (byte *)(void *)&value;
-    for (int i = 0; i < sizeof(value); i++)
-    {
-        *p++ = EEPROM.read(address++);
-    }
-    return value;
+double EEPROM_readDouble(int address) {
+  double value = 0.0;
+  byte *p = (byte *)(void *)&value;
+  for (int i = 0; i < sizeof(value); i++) {
+    *p++ = EEPROM.read(address++);
+  }
+  return value;
 }
 
 /******************************************
@@ -342,12 +288,11 @@ ezButton up_btn(UP_BTN);
 ezButton select_btn(SELECT_BTN);
 ezButton down_btn(DOWN_BTN);
 
-enum ControlState : uint8_t
-{
-    CTRL_SET_SCREEN = 0,  // in this state the encoder cycles the screens
-    CTRL_SET_LINE = 1,    // in this state it cycles the focus through the lines
-    CTRL_SET_SETTING = 2, // in this state it "increases or decreases" the value of a setting
-    CTRL_OUT_OF_BOUNDS,   // this is automatically set to 3
+enum ControlState : uint8_t {
+  CTRL_SET_SCREEN = 0,   // in this state the encoder cycles the screens
+  CTRL_SET_LINE = 1,     // in this state it cycles the focus through the lines
+  CTRL_SET_SETTING = 2,  // in this state it "increases or decreases" the value of a setting
+  CTRL_OUT_OF_BOUNDS,    // this is automatically set to 3
 };
 
 ControlState controlState = CTRL_SET_LINE;
@@ -361,8 +306,8 @@ unsigned long last_update = 0;
 
 #ifdef I2C_LCD
 #include <LiquidCrystal_I2C.h>
-LiquidCrystal_I2C lcd(LCD_ADDRESS, COLUMNS, ROWS); // if the address 0x27 doesn't work, try 0x3f
-                                                   /* Wiring:
+LiquidCrystal_I2C lcd(LCD_ADDRESS, COLUMNS, ROWS);  // if the address 0x27 doesn't work, try 0x3f
+                                                    /* Wiring:
                                                     *    i2c LCD Module  ==>   Arduino Pin
                                                     *    SCL             ==>     A5
                                                     *    SDA             ==>     A4
@@ -389,7 +334,7 @@ LiquidScreen welcome_screen(welcome_line1, welcome_line2);
 
 // Status
 LiquidLine actual_temp_line(0, 0, "Temp: ", current_temp, " C");
-LiquidLine actual_speed_line(0, 1, "Speed: ", target_speed); // current_speed will fluctuate a lot. Better to show current speed.
+LiquidLine actual_speed_line(0, 1, "Speed: ", target_speed);  // current_speed will fluctuate a lot. Better to show current speed.
 // LiquidScreen status_screen(actual_temp_line, actual_speed_line);
 
 // Edit
@@ -411,212 +356,185 @@ LiquidScreen main_screen;
 
 LiquidMenu menu(lcd);
 
-void setup()
-{
-    pinMode(THERMISTOR_PIN, INPUT);
-    pinMode(HEATER_PIN, OUTPUT);
-    pinMode(LED_BUILTIN, OUTPUT);
+void setup() {
+  pinMode(THERMISTOR_PIN, INPUT);
+  pinMode(HEATER_PIN, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
 
 #ifdef I2C_LCD
-    lcd.init();
-    lcd.backlight();
+  lcd.init();
+  lcd.backlight();
 #endif
 
-    lcd.begin(COLUMNS, ROWS);
+  lcd.begin(COLUMNS, ROWS);
 
-    /***********
+  /***********
      * EEPROM
      */
-    if (eeprom_initialized())
-    {
-        LoadParameters();
-    }
-    else
-    {
-        InitializeEeprom();
-    }
-    heaterPID.setGains(KP, KI, KD);
+  if (eeprom_initialized()) {
+    LoadParameters();
+  } else {
+    InitializeEeprom();
+  }
+  heaterPID.setGains(KP, KI, KD);
 
-    /***********
+  /***********
      * Temp
      */
-    // if temperature is more than 4 degrees below or above setpoint, OUTPUT will be set to min or max respectively
-    heaterPID.setBangBang(BANG_BANG_RANGE);
-    // set PID update interval
-    heaterPID.setTimeStep(TEMP_READ_DELAY);
+  // if temperature is more than 4 degrees below or above setpoint, OUTPUT will be set to min or max respectively
+  heaterPID.setBangBang(BANG_BANG_RANGE);
+  // set PID update interval
+  heaterPID.setTimeStep(TEMP_READ_DELAY);
 
 /***********
  * Puller
  */
 #ifdef USES_STEPPER
-    engine.init();
-    stepper = engine.stepperConnectToPin(STEP_PIN);
-    if (stepper)
-    {
-        stepper->setDirectionPin(DIR_PIN);
-        stepper->setEnablePin(ENABLE_PIN);
-        stepper->setAutoEnable(true);
+  engine.init();
+  stepper = engine.stepperConnectToPin(STEP_PIN);
+  if (stepper) {
+    stepper->setDirectionPin(DIR_PIN);
+    stepper->setEnablePin(ENABLE_PIN);
+    stepper->setAutoEnable(true);
 
-        stepper->setSpeedInHz(target_speed);
-        stepper->setAcceleration(ACCELERATION);
-    }
-#else // a DC motor is assumed
-    pinMode(MOTOR_PWM_PIN, OUTPUT);
-    pinMode(DIR_PIN, OUTPUT);
-    pinMode(ENABLE_PIN, OUTPUT);
-    digitalWrite(ENABLE_PIN, 1); // disable motor
+    stepper->setSpeedInHz(target_speed);
+    stepper->setAcceleration(ACCELERATION);
+  }
+#else  // a DC motor is assumed
+  pinMode(MOTOR_PWM_PIN, OUTPUT);
+  pinMode(DIR_PIN, OUTPUT);
+  pinMode(ENABLE_PIN, OUTPUT);
+  digitalWrite(ENABLE_PIN, 1);  // disable motor
 #endif
 
-    /***********
+  /***********
      * Menu
      */
-    set_temp_line.attach_function(1, increase_temp);
-    set_temp_line.attach_function(2, decrease_temp);
+  set_temp_line.attach_function(1, increase_temp);
+  set_temp_line.attach_function(2, decrease_temp);
 
-    set_speed_line.attach_function(1, increase_speed);
-    set_speed_line.attach_function(2, decrease_speed);
+  set_speed_line.attach_function(1, increase_speed);
+  set_speed_line.attach_function(2, decrease_speed);
 
-    enable_heater_line.attach_function(1, toggle_heater);
+  enable_heater_line.attach_function(1, toggle_heater);
 
-    enable_puller_line.attach_function(1, toggle_puller);
-    // start_line.attach_function(1, toggle_running);
+  enable_puller_line.attach_function(1, toggle_puller);
+  // start_line.attach_function(1, toggle_running);
 
-    save_parameters_line.attach_function(1, SaveParameters);
+  save_parameters_line.attach_function(1, SaveParameters);
 
-    set_temp_line.set_decimalPlaces(0);
-    actual_temp_line.set_decimalPlaces(0);
+  set_temp_line.set_decimalPlaces(0);
+  actual_temp_line.set_decimalPlaces(0);
 
-    main_screen.add_line(enable_heater_line);
-    main_screen.add_line(enable_puller_line);
-    main_screen.add_line(set_temp_line);
-    main_screen.add_line(set_speed_line);
-    main_screen.add_line(actual_temp_line);
-    main_screen.add_line(actual_speed_line);
-    main_screen.add_line(save_parameters_line);
-    main_screen.set_displayLineCount(2);
-    // menu.add_screen(welcome_screen);
-    // menu.add_screen(status_screen);
-    // menu.add_screen(edit_screen);
-    // menu.add_screen(enable_screen);
-    menu.add_screen(main_screen);
+  main_screen.add_line(enable_heater_line);
+  main_screen.add_line(enable_puller_line);
+  main_screen.add_line(set_temp_line);
+  main_screen.add_line(set_speed_line);
+  main_screen.add_line(actual_temp_line);
+  main_screen.add_line(actual_speed_line);
+  main_screen.add_line(save_parameters_line);
+  main_screen.set_displayLineCount(2);
+  // menu.add_screen(welcome_screen);
+  // menu.add_screen(status_screen);
+  // menu.add_screen(edit_screen);
+  // menu.add_screen(enable_screen);
+  menu.add_screen(main_screen);
 }
 
-void loop()
-{
-    // check if motor should keep running. Motor won't run until temperature is reached.
-    runMotorIfTempReached(current_temp, target_temp);
+void loop() {
+  // check if motor should keep running. Motor won't run until temperature is reached.
+  runMotorIfTempReached(current_temp, target_temp);
 
-    updateTemperature();
-    heaterPID.run();
+  updateTemperature();
+  heaterPID.run();
 
-    up_btn.loop();
-    select_btn.loop();
-    down_btn.loop();
+  up_btn.loop();
+  select_btn.loop();
+  down_btn.loop();
 
-    /*********
+  /*********
      * Temperature
      */
-    if (int(heater_pwm) != int(last_pwm))
-    {
-        last_pwm = heater_pwm;
-        analogWrite(HEATER_PIN, int(heater_pwm));
-    }
-    digitalWrite(LED_BUILTIN, heaterPID.atSetPoint(1)); // light up LED when we're at setpoint +-1 degree
+  if (int(heater_pwm) != int(last_pwm)) {
+    last_pwm = heater_pwm;
+    analogWrite(HEATER_PIN, int(heater_pwm));
+  }
+  digitalWrite(LED_BUILTIN, heaterPID.atSetPoint(1));  // light up LED when we're at setpoint +-1 degree
 
-    /***********
+  /***********
      * Menu
      */
-    if (int(current_temp) != int(last_temp) && millis() - last_update > MIN_DISPLAY_UPDATE_MILLIS)
-    {
-        last_update = millis();
-        last_temp = current_temp;
-        menu.update();
+  if (int(current_temp) != int(last_temp) && millis() - last_update > MIN_DISPLAY_UPDATE_MILLIS) {
+    last_update = millis();
+    last_temp = current_temp;
+    menu.update();
+  }
+  bool up_pressed = false;
+  bool down_pressed = false;
+  bool select_pressed = false;
+
+  if (!up_btn.getState() && millis() - last_press_time > AUTO_PRESS_DELAY) {
+    up_pressed = true;
+    last_press_time = millis();
+  }
+
+  else if (!down_btn.getState() && millis() - last_press_time > AUTO_PRESS_DELAY) {
+    down_pressed = true;
+    last_press_time = millis();
+  }
+
+  else if (!select_btn.getState() && millis() - last_press_time > AUTO_PRESS_DELAY) {
+    select_pressed = true;
+    last_press_time = millis();
+  }
+
+  // Navigation
+  switch (controlState) {
+    case CTRL_SET_SCREEN:  // cycling screens
+      if (up_pressed) {
+        menu.previous_screen();
+      } else if (down_pressed) {
+        menu.next_screen();
+      }
+
+      break;
+
+    case CTRL_SET_LINE:  // cycling through lines
+      if (up_pressed) {
+        menu.switch_focus(false);
+      } else if (down_pressed) {
+        menu.switch_focus(true);
+        // menu.switch_focus();
+      }
+
+      break;
+
+    case CTRL_SET_SETTING:  // changing a setting
+      if (up_pressed) {
+        menu.call_function(1);
+      } else if (down_pressed) {
+        menu.call_function(2);
+      }
+
+      break;
+
+    default:  // invalid state
+      controlState = CTRL_SET_SCREEN;
+      break;
+  }
+
+  if (select_pressed) {
+    // if the line has two functions, it uses both arrows and needs control state changed
+    if (menu.is_callable(2)) {
+      if (controlState + 1 < CTRL_OUT_OF_BOUNDS) {
+        controlState = (ControlState)(controlState + 1);
+      } else {
+        controlState = CTRL_SET_LINE;
+      }
     }
-    bool up_pressed = false;
-    bool down_pressed = false;
-    bool select_pressed = false;
-
-    if (!up_btn.getState() && millis() - last_press_time > AUTO_PRESS_DELAY)
-    {
-        up_pressed = true;
-        last_press_time = millis();
+    // otherwise, it is either a status or a button. Just try to run the function.
+    else {
+      menu.call_function(1);
     }
-
-    else if (!down_btn.getState() && millis() - last_press_time > AUTO_PRESS_DELAY)
-    {
-        down_pressed = true;
-        last_press_time = millis();
-    }
-
-    else if (!select_btn.getState() && millis() - last_press_time > AUTO_PRESS_DELAY)
-    {
-        select_pressed = true;
-        last_press_time = millis();
-    }
-
-    // Navigation
-    switch (controlState)
-    {
-    case CTRL_SET_SCREEN: // cycling screens
-        if (up_pressed)
-        {
-            menu.previous_screen();
-        }
-        else if (down_pressed)
-        {
-            menu.next_screen();
-        }
-
-        break;
-
-    case CTRL_SET_LINE: // cycling through lines
-        if (up_pressed)
-        {
-            menu.switch_focus(false);
-        }
-        else if (down_pressed)
-        {
-            menu.switch_focus(true);
-            // menu.switch_focus();
-        }
-
-        break;
-
-    case CTRL_SET_SETTING: // changing a setting
-        if (up_pressed)
-        {
-            menu.call_function(1);
-        }
-        else if (down_pressed)
-        {
-            menu.call_function(2);
-        }
-
-        break;
-
-    default: // invalid state
-        controlState = CTRL_SET_SCREEN;
-        break;
-    }
-
-    if (select_pressed)
-    {
-        // if the line has two functions, it uses both arrows and needs control state changed
-        if (menu.is_callable(2))
-        {
-            if (controlState + 1 < CTRL_OUT_OF_BOUNDS)
-            {
-                controlState = (ControlState)(controlState + 1);
-            }
-            else
-            {
-                controlState = CTRL_SET_LINE;
-            }
-        }
-        // otherwise, it is either a status or a button. Just try to run the function.
-        else
-        {
-            menu.call_function(1);
-        }
-    }
+  }
 }
