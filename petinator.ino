@@ -250,7 +250,7 @@ const int KiAddress = KpAddress + sizeof(KP);
 const int KdAddress = KiAddress + sizeof(KI);
 const int TsAddress = KdAddress + sizeof(KD);
 
-bool eeprom_initialized() 
+bool eeprom_initialized()
 {
     int sign;
     EEPROM.get(initialized_address, sign);
@@ -269,67 +269,68 @@ void InitializeEeprom()
 
 void SaveParameters()
 {
-   if (target_temp != EEPROM_readDouble(TtAddress))
-   {
-      EEPROM_writeDouble(TtAddress, target_temp);
-   }
-   if (KP != EEPROM_readDouble(KpAddress))
-   {
-      EEPROM_writeDouble(KpAddress, KP);
-   }
-   if (KI != EEPROM_readDouble(KiAddress))
-   {
-      EEPROM_writeDouble(KiAddress, KI);
-   }
-   if (KD != EEPROM_readDouble(KdAddress))
-   {
-      EEPROM_writeDouble(KdAddress, KD);
-   }
-   if (target_speed != EEPROM_readDouble(TsAddress))
-   {
-      EEPROM_writeDouble(TsAddress, target_speed);
-   }
-   saved_status = true;
+    if (target_temp != EEPROM_readDouble(TtAddress))
+    {
+        EEPROM_writeDouble(TtAddress, target_temp);
+    }
+    if (KP != EEPROM_readDouble(KpAddress))
+    {
+        EEPROM_writeDouble(KpAddress, KP);
+    }
+    if (KI != EEPROM_readDouble(KiAddress))
+    {
+        EEPROM_writeDouble(KiAddress, KI);
+    }
+    if (KD != EEPROM_readDouble(KdAddress))
+    {
+        EEPROM_writeDouble(KdAddress, KD);
+    }
+    if (target_speed != EEPROM_readDouble(TsAddress))
+    {
+        EEPROM_writeDouble(TsAddress, target_speed);
+    }
+    saved_status = true;
 }
 
 void LoadParameters()
 {
-  if ( eeprom_initialized ) { 
-    // Load from EEPROM
-    target_temp = EEPROM_readDouble(TtAddress);
-    KP = EEPROM_readDouble(KpAddress);
-    KI = EEPROM_readDouble(KiAddress);
-    KD = EEPROM_readDouble(KdAddress);
-    target_speed = EEPROM_readDouble(TsAddress);
-  }
-  else 
-  {
-    target_temp = DEFAULT_TEMP;
-    KP = DEFAULT_KP;
-    KI = DEFAULT_KI;
-    KD = DEFAULT_KD;
-    target_speed = DEFAULT_SPEED;
-  }
+    if (eeprom_initialized)
+    {
+        // Load from EEPROM
+        target_temp = EEPROM_readDouble(TtAddress);
+        KP = EEPROM_readDouble(KpAddress);
+        KI = EEPROM_readDouble(KiAddress);
+        KD = EEPROM_readDouble(KdAddress);
+        target_speed = EEPROM_readDouble(TsAddress);
+    }
+    else
+    {
+        target_temp = DEFAULT_TEMP;
+        KP = DEFAULT_KP;
+        KI = DEFAULT_KI;
+        KD = DEFAULT_KD;
+        target_speed = DEFAULT_SPEED;
+    }
 }
 
 void EEPROM_writeDouble(int address, double value)
 {
-   byte* p = (byte*)(void*)&value;
-   for (int i = 0; i < sizeof(value); i++)
-   {
-      EEPROM.write(address++, *p++);
-   }
+    byte *p = (byte *)(void *)&value;
+    for (int i = 0; i < sizeof(value); i++)
+    {
+        EEPROM.write(address++, *p++);
+    }
 }
 
 double EEPROM_readDouble(int address)
 {
-   double value = 0.0;
-   byte* p = (byte*)(void*)&value;
-   for (int i = 0; i < sizeof(value); i++)
-   {
-      *p++ = EEPROM.read(address++);
-   }
-   return value;
+    double value = 0.0;
+    byte *p = (byte *)(void *)&value;
+    for (int i = 0; i < sizeof(value); i++)
+    {
+        *p++ = EEPROM.read(address++);
+    }
+    return value;
 }
 
 /******************************************
@@ -426,10 +427,12 @@ void setup()
     /***********
      * EEPROM
      */
-    if ( eeprom_initialized() ) {
+    if (eeprom_initialized())
+    {
         LoadParameters();
     }
-    else {
+    else
+    {
         InitializeEeprom();
     }
     heaterPID.setGains(KP, KI, KD);
