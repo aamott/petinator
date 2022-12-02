@@ -20,6 +20,7 @@
 #include <LiquidCrystal.h>
 #include <FastAccelStepper.h>
 #include <ezButton.h>
+#include <EEPROM.h>
 
 #include "configuration.h"
 
@@ -57,6 +58,8 @@ double temp_set_point = 0;         // the value used by autopid
 double heater_pwm = 0;             // heater's pwm will be controlled by this value
 double last_pwm = 0;               // keeps track of the last value for less frequent updating
 bool heatingEnabled = false;
+
+float KP = DEFAULT_KP, KI = DEFAULT_KI, KD = DEFAULT_KD;
 
 // input/output variables passed by reference, so they are updated automatically
 AutoPID heaterPID(&current_temp, &temp_set_point, &heater_pwm, OUTPUT_MIN, OUTPUT_MAX, KP, KI, KD);
@@ -234,6 +237,103 @@ void toggle_puller()
 #endif
 
 /******************************************
+ * EEPROM
+ */
+bool saved_status = false;
+
+// variable addresses - each one needs enough space for itself,
+// hence the use of sizeof(previous variable)
+const int initialized_address = 0;
+const int TtAddress = initialized_address + sizeof(int(EEPROM_INITIALIZED_SIGN));
+const int KpAddress = TtAddress + sizeof(target_temp);
+const int KiAddress = KpAddress + sizeof(KP);
+const int KdAddress = KiAddress + sizeof(KI);
+const int TsAddress = KdAddress + sizeof(KD);
+
+bool eeprom_initialized()
+{
+    int sign;
+    EEPROM.get(initialized_address, sign);
+    return sign == EEPROM_INITIALIZED_SIGN;
+}
+
+void InitializeEeprom()
+{
+    EEPROM.put(initialized_address, EEPROM_INITIALIZED_SIGN);
+    EEPROM_writeDouble(TtAddress, DEFAULT_TEMP);
+    EEPROM_writeDouble(KpAddress, DEFAULT_KP);
+    EEPROM_writeDouble(KiAddress, DEFAULT_KI);
+    EEPROM_writeDouble(KdAddress, DEFAULT_KD);
+    EEPROM_writeDouble(TsAddress, DEFAULT_SPEED);
+}
+
+void SaveParameters()
+{
+    if (target_temp != EEPROM_readDouble(TtAddress))
+    {
+        EEPROM_writeDouble(TtAddress, target_temp);
+    }
+    if (KP != EEPROM_readDouble(KpAddress))
+    {
+        EEPROM_writeDouble(KpAddress, KP);
+    }
+    if (KI != EEPROM_readDouble(KiAddress))
+    {
+        EEPROM_writeDouble(KiAddress, KI);
+    }
+    if (KD != EEPROM_readDouble(KdAddress))
+    {
+        EEPROM_writeDouble(KdAddress, KD);
+    }
+    if (target_speed != EEPROM_readDouble(TsAddress))
+    {
+        EEPROM_writeDouble(TsAddress, target_speed);
+    }
+    saved_status = true;
+}
+
+void LoadParameters()
+{
+    if (eeprom_initialized)
+    {
+        // Load from EEPROM
+        target_temp = EEPROM_readDouble(TtAddress);
+        KP = EEPROM_readDouble(KpAddress);
+        KI = EEPROM_readDouble(KiAddress);
+        KD = EEPROM_readDouble(KdAddress);
+        target_speed = EEPROM_readDouble(TsAddress);
+    }
+    else
+    {
+        target_temp = DEFAULT_TEMP;
+        KP = DEFAULT_KP;
+        KI = DEFAULT_KI;
+        KD = DEFAULT_KD;
+        target_speed = DEFAULT_SPEED;
+    }
+}
+
+void EEPROM_writeDouble(int address, double value)
+{
+    byte *p = (byte *)(void *)&value;
+    for (int i = 0; i < sizeof(value); i++)
+    {
+        EEPROM.write(address++, *p++);
+    }
+}
+
+double EEPROM_readDouble(int address)
+{
+    double value = 0.0;
+    byte *p = (byte *)(void *)&value;
+    for (int i = 0; i < sizeof(value); i++)
+    {
+        *p++ = EEPROM.read(address++);
+    }
+    return value;
+}
+
+/******************************************
  * Buttons
  */
 long last_press_time = 0;
@@ -301,6 +401,10 @@ LiquidLine set_speed_line(0, 3, "Set Speed: ", target_speed);
 LiquidLine enable_heater_line(0, 4, "Start Heater: ", heatingEnabled);
 LiquidLine enable_puller_line(0, 5, "Start Puller: ", pullingEnabled);
 // LiquidScreen enable_screen(enable_heater_line, enable_puller_line, set_temp_line, set_speed_line, actual_temp_line, actual_speed_line);
+
+//  EEPROM
+LiquidLine save_parameters_line(0, 6, "Save: ", saved_status);
+
 // LiquidLine start_line(0, 0, "Start: ", menu_message);
 // LiquidScreen enable_screen(start_line);
 LiquidScreen main_screen;
@@ -319,6 +423,19 @@ void setup()
 #endif
 
     lcd.begin(COLUMNS, ROWS);
+
+    /***********
+     * EEPROM
+     */
+    if (eeprom_initialized())
+    {
+        LoadParameters();
+    }
+    else
+    {
+        InitializeEeprom();
+    }
+    heaterPID.setGains(KP, KI, KD);
 
     /***********
      * Temp
@@ -364,6 +481,8 @@ void setup()
     enable_puller_line.attach_function(1, toggle_puller);
     // start_line.attach_function(1, toggle_running);
 
+    save_parameters_line.attach_function(1, SaveParameters);
+
     set_temp_line.set_decimalPlaces(0);
     actual_temp_line.set_decimalPlaces(0);
 
@@ -373,6 +492,7 @@ void setup()
     main_screen.add_line(set_speed_line);
     main_screen.add_line(actual_temp_line);
     main_screen.add_line(actual_speed_line);
+    main_screen.add_line(save_parameters_line);
     main_screen.set_displayLineCount(2);
     // menu.add_screen(welcome_screen);
     // menu.add_screen(status_screen);

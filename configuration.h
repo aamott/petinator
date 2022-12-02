@@ -29,9 +29,9 @@
 */
 #define OUTPUT_MIN 0
 #define OUTPUT_MAX 255
-#define KP .22 //0.22
-#define KI .92 //0.92
-#define KD 0.1 // 0.1
+#define DEFAULT_KP .22 //0.22
+#define DEFAULT_KI .92 //0.92
+#define DEFAULT_KD 0.1 // 0.1
 
 #define BANG_BANG_RANGE 4 // higher or lower than BANG_BANG_RANGE will not use PID
 
@@ -53,6 +53,11 @@
 #endif
 
 /******************************************
+ * EEPROM
+*/
+#define EEPROM_INITIALIZED_SIGN -10922 //binary 1010101010101010
+
+/******************************************
 * Buttons
 */
 #define AUTO_PRESS_DELAY 200 // How quickly the button press should repeat when held
@@ -64,7 +69,7 @@
 */
 // Use display with I2C controller
 // requires changing LiquidMenu_config.h - see https://github.com/VaSe7u/LiquidMenu/issues/36
-// #define I2C_LCD
+#define I2C_LCD
 
 // 1602 display would be 2 rows, 16 columns
 #define COLUMNS 16
