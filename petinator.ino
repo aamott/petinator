@@ -237,7 +237,34 @@ void toggle_puller()
 /******************************************
  * EEPROM
  */
-int saving_status = 0;
+bool saved_status = false;
+double initialized = EEPROM_INITIALIZED_SIGN;
+
+// variable addresses - each one needs enough space for itself,
+// hence the use of sizeof(previous variable)
+const int initialized_address = 0;
+const int TtAddress = 0 + sizeof(initialized);
+const int KpAddress = TtAddress + sizeof(target_temp);
+const int KiAddress = KpAddress + sizeof(KP);
+const int KdAddress = KiAddress + sizeof(KI);
+const int TsAddress = TsAddress + sizeof(KD);
+
+bool eeprom_initialized() 
+{
+    double sign = 0;
+    EEPROM.get(initialized_address, sign);
+    return sign == EEPROM_INITIALIZED_SIGN;
+}
+
+void InitializeEeprom()
+{
+    EEPROM.put(initialized_address, EEPROM_INITIALIZED_SIGN);
+    EEPROM_writeDouble(TtAddress, DEFAULT_TEMP);
+    EEPROM_writeDouble(KpAddress, DEFAULT_KP);
+    EEPROM_writeDouble(KiAddress, DEFAULT_KI);
+    EEPROM_writeDouble(KdAddress, DEFAULT_KD);
+    EEPROM_writeDouble(TsAddress, DEFAULT_SPEED);
+}
 
 void SaveParameters()
 {
@@ -261,11 +288,13 @@ void SaveParameters()
    {
       EEPROM_writeDouble(TsAddress, target_speed);
    }
-   saving_status = "Saved";
+   saved_status = true;
 }
 
 void LoadParameters()
 {
+  // check if eeprom is empty
+
   // Load from EEPROM
    target_temp = EEPROM_readDouble(TtAddress);
    KP = EEPROM_readDouble(KpAddress);
@@ -386,7 +415,7 @@ LiquidLine enable_puller_line(0, 5, "Start Puller: ", pullingEnabled);
 // LiquidScreen enable_screen(enable_heater_line, enable_puller_line, set_temp_line, set_speed_line, actual_temp_line, actual_speed_line);
 
 //  EEPROM
-LiquidLine save_parameters_line(0, 6, "Save: ", saving_status);
+LiquidLine save_parameters_line(0, 6, "Save: ", saved_status);
 
 // LiquidLine start_line(0, 0, "Start: ", menu_message);
 // LiquidScreen enable_screen(start_line);
@@ -410,7 +439,12 @@ void setup()
     /***********
      * EEPROM
      */
-    LoadParameters();
+    if ( eeprom_initialized() ) {
+        LoadParameters();
+    }
+    else {
+        InitializeEeprom();
+    }
     heaterPID.setGains(KP, KI, KD);
 
     /***********

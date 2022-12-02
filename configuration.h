@@ -36,15 +36,6 @@ float KP,KI,KD;
 
 #define BANG_BANG_RANGE 4 // higher or lower than BANG_BANG_RANGE will not use PID
 
-/******************************************
-* EEPROM
-* addresses for persisted data
-*/
-const int TtAddress = 0;
-const int KpAddress = 8;
-const int KiAddress = 16;
-const int KdAddress = 24;
-const int TsAddress = 32;
 
 /******************************************
 * Puller Motor
@@ -63,6 +54,11 @@ const int TsAddress = 32;
 #endif
 
 /******************************************
+ * EEPROM
+*/
+#define EEPROM_INITIALIZED_SIGN 12297829382473000000 // in binary, 101010...010
+
+/******************************************
 * Buttons
 */
 #define AUTO_PRESS_DELAY 200 // How quickly the button press should repeat when held
@@ -74,7 +70,7 @@ const int TsAddress = 32;
 */
 // Use display with I2C controller
 // requires changing LiquidMenu_config.h - see https://github.com/VaSe7u/LiquidMenu/issues/36
-// #define I2C_LCD
+#define I2C_LCD
 
 // 1602 display would be 2 rows, 16 columns
 #define COLUMNS 16
