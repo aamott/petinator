@@ -503,9 +503,9 @@ void setup() {
   main_screen.add_line(enable_puller_line);
   main_screen.add_line(set_temp_line);
   main_screen.add_line(set_speed_line);
+  main_screen.add_line(save_parameters_line);
   main_screen.add_line(actual_temp_line);
   main_screen.add_line(actual_speed_line);
-  main_screen.add_line(save_parameters_line);
   main_screen.set_displayLineCount(2);
   menu.add_screen(main_screen);
 }
