@@ -119,15 +119,18 @@ void heater_loop() {
     disable_heater();
     throw_error("Max Temp Hit!");
     error_thrown = true;
-  } 
+  }
   // thermal overshoot
+  // TODO: Only run once target temp has been reached. Otherwise
+  // an error will be thrown if the user lowers the target temp while hot.
   else if (heatingEnabled && current_temp - target_temp > HEATER_OVERSHOOT) {
     disable_heater();
     throw_error("Heater Overshoot!");
     error_thrown = true;
   }
 
-  // TODO: Implement thermal runaway protection to detect faulty thermistor
+  // TODO: Implement thermal runaway protection to detect faulty thermistor.
+  // Runs until target temp has been reached.
 }
 
 /******************************************
@@ -410,7 +413,7 @@ LiquidMenu menu(lcd);
 /*
 * Displays an error message and stops pulling and heating
 */
-template <typename A>
+template<typename A>
 void throw_error(const A &message) {
   LiquidLine error_line(0, 0, message);
   error_screen.add_line(error_line);
