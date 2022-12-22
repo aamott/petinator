@@ -56,6 +56,7 @@ double temp_set_point = 0;          // the value used by autopid
 double heater_pwm = 0;              // heater's pwm will be controlled by this value
 double last_pwm = 0;                // keeps track of the last value for less frequent updating
 bool heatingEnabled = false;
+bool error_thrown = false;
 
 float KP = DEFAULT_KP, KI = DEFAULT_KI, KD = DEFAULT_KD;
 
@@ -85,6 +86,48 @@ void toggle_heater() {
   } else {
     temp_set_point = 0;
   }
+}
+
+void disable_heater() {
+  heatingEnabled = false;
+  temp_set_point = 0;
+}
+
+void heater_loop() {
+
+  // only throw an error once (until a reset)
+  if (error_thrown) {
+    return;
+  }
+
+  // update the temperature and PID
+  updateTemperature();
+  heaterPID.run();
+
+  // apply new PID value
+  if (int(heater_pwm) != int(last_pwm)) {
+    last_pwm = heater_pwm;
+    analogWrite(HEATER_PIN, int(heater_pwm));
+  }
+
+  // light up LED when we're at setpoint +-1 degree
+  digitalWrite(LED_BUILTIN, heaterPID.atSetPoint(1));
+
+  // Check for heating errors
+  // overheat
+  if (current_temp > MAX_TEMP) {
+    disable_heater();
+    throw_error("Max Temp Hit!");
+    error_thrown = true;
+  } 
+  // thermal overshoot
+  else if (heatingEnabled && current_temp - target_temp > HEATER_OVERSHOOT) {
+    disable_heater();
+    throw_error("Heater Overshoot!");
+    error_thrown = true;
+  }
+
+  // TODO: Implement thermal runaway protection to detect faulty thermistor
 }
 
 /******************************************
@@ -146,6 +189,12 @@ void toggle_puller() {
   // if(pullingEnabled) stepper->stopMove();
   pullingEnabled = !pullingEnabled;
 }
+
+void disable_puller() {
+  pullingEnabled = false;
+  stepper->stopMove();
+}
+
 #else  // end USES_STEPPER, start USES_PWM_MOTOR
 bool motor_running = false;
 /***************************
@@ -353,9 +402,33 @@ LiquidLine save_parameters_line(0, 6, "Save: ", saved_status);
 // LiquidLine start_line(0, 0, "Start: ", menu_message);
 // LiquidScreen enable_screen(start_line);
 LiquidScreen main_screen;
+LiquidScreen error_screen;
 
 LiquidMenu menu(lcd);
 
+
+/*
+* Displays an error message and stops pulling and heating
+*/
+template <typename A>
+void throw_error(const A &message) {
+  LiquidLine error_line(0, 0, message);
+  error_screen.add_line(error_line);
+  error_screen.set_displayLineCount(1);
+  menu.add_screen(error_screen);
+
+  // switch to the newly created error screen
+  menu.change_screen(2);
+
+  // stop pulling and heating
+  disable_heater();
+  disable_puller();
+}
+
+
+/********************************
+ * Setup
+*/
 void setup() {
   pinMode(THERMISTOR_PIN, INPUT);
   pinMode(HEATER_PIN, OUTPUT);
@@ -434,10 +507,6 @@ void setup() {
   main_screen.add_line(actual_speed_line);
   main_screen.add_line(save_parameters_line);
   main_screen.set_displayLineCount(2);
-  // menu.add_screen(welcome_screen);
-  // menu.add_screen(status_screen);
-  // menu.add_screen(edit_screen);
-  // menu.add_screen(enable_screen);
   menu.add_screen(main_screen);
 }
 
@@ -445,25 +514,23 @@ void loop() {
   // check if motor should keep running. Motor won't run until temperature is reached.
   runMotorIfTempReached(current_temp, target_temp);
 
-  updateTemperature();
-  heaterPID.run();
-
   up_btn.loop();
   select_btn.loop();
   down_btn.loop();
 
   /*********
-     * Temperature
-     */
-  if (int(heater_pwm) != int(last_pwm)) {
-    last_pwm = heater_pwm;
-    analogWrite(HEATER_PIN, int(heater_pwm));
-  }
-  digitalWrite(LED_BUILTIN, heaterPID.atSetPoint(1));  // light up LED when we're at setpoint +-1 degree
+   * Temperature
+   */
+  heater_loop();
 
   /***********
-     * Menu
-     */
+   * Menu
+   */
+  // skip menu updates and controls if an error has been thrown. Leave the error on display.
+  if (error_thrown) {
+    return;
+  }
+
   if (int(current_temp) != int(last_temp) && millis() - last_update > MIN_DISPLAY_UPDATE_MILLIS) {
     last_update = millis();
     last_temp = current_temp;
