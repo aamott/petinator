@@ -17,12 +17,22 @@
 */
 #define THERMISTOR_TYPE 5 // See https://github.com/miguel5612/Arduino-ThermistorLibrary for possible values
 #define TEMP_READ_DELAY 100 // how frequently the thermistor should be read in ms
-#define MAX_TEMP 240            // maximum temperature. Anything above this will throw an error. 
+#define MAX_TEMP 240            // maximum temperature the thermistor can read (deg C).
 #define DEFAULT_TEMP 198 // default temp to use as target
-#define TEMP_VARIANCE 3 // range in which the stepper should be allowed to run
+#define TEMP_VARIANCE 3 // how close the actual temp should be to the target temp to be considered "heated"
 #define TEMP_INCREMENT_SIZE 1 // How much temp jumps each button press
-#define HEATER_OVERSHOOT 7   // (°C) How far above target temp is considered an error
 
+// Thermal Protection
+// Provides some protection against fire. If the thermistor falls out, shorts,
+// or is damaged, it may read a much lower temperature than the the heater
+// is at. If the temperature doesn't come at least a few degrees
+// closer to the target (hysteresis) within a set time (period), 
+// we stop heating and pulling. 
+// If you are getting Thermal Runaway or Cooling Failed errors, increase the 
+// period or decrease the hysteresis. 
+#define THERMAL_PROTECTION_PERIOD 20        // Seconds
+#define THERMAL_PROTECTION_HYSTERESIS 4     // Degrees Celsius
+#define CHECKS_PER_PERIOD 20 // How many times to check for thermal runaway during the period
 
 
 /******************************************

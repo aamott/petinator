@@ -57,6 +57,13 @@ double heater_pwm = 0;              // heater's pwm will be controlled by this v
 double last_pwm = 0;                // keeps track of the last value for less frequent updating
 bool heatingEnabled = false;
 bool error_thrown = false;
+// thermal runaway
+int recorded_temps[CHECKS_PER_PERIOD];                                      // keeps track of temps over THERMAL_PROTECTION_PERIOD seconds
+int current_index = 0;                                                      // current write index for temps
+int next_index = 0;                                                         // next index to write temp into/last index written to
+#define TEMP_CHECK_MS THERMAL_PROTECTION_PERIOD * 1000 / CHECKS_PER_PERIOD  // how many milliseconds between temperature checks
+int last_thermal_check_time = 0;                                            // last time temp was checked for thermal errors
+
 
 float KP = DEFAULT_KP, KI = DEFAULT_KI, KD = DEFAULT_KD;
 
@@ -68,6 +75,7 @@ void increase_temp() {
     target_temp += TEMP_INCREMENT_SIZE;
     if (heatingEnabled) {
       temp_set_point = target_temp;
+      reset_recorded_temps();
     }
   }
 }
@@ -76,6 +84,7 @@ void decrease_temp() {
   target_temp -= TEMP_INCREMENT_SIZE;
   if (heatingEnabled) {
     temp_set_point = target_temp;
+    reset_recorded_temps();
   }
 }
 
@@ -84,53 +93,88 @@ void toggle_heater() {
   if (heatingEnabled) {
     temp_set_point = target_temp;
   } else {
-    temp_set_point = 0;
+    disable_heater();
   }
 }
 
 void disable_heater() {
   heatingEnabled = false;
   temp_set_point = 0;
+  digitalWrite(HEATER_PIN, 0);
+  reset_recorded_temps();
 }
 
-void heater_loop() {
+void reset_recorded_temps() {
+  for (int i = 0; i <= CHECKS_PER_PERIOD - 1; i++) {
+    recorded_temps[i] = -1;
+  }
+}
 
-  // only throw an error once (until a reset)
-  if (error_thrown) {
-    return;
+void check_thermal_safety() {
+  // Thermal runaway checks
+  if (millis() - last_thermal_check_time > TEMP_CHECK_MS &&  // time to check again
+      (current_temp < target_temp - TEMP_VARIANCE ||         // heating
+       current_temp > target_temp + TEMP_VARIANCE)) {        // cooling
+    last_thermal_check_time = millis();
+
+    // Move forward in the temps array
+    current_index = next_index;
+    next_index += 1;
+    // check for wrapping
+    if (next_index >= CHECKS_PER_PERIOD) {
+      next_index = 0;
+    }
+
+    // Write current temp
+    recorded_temps[current_index] = current_temp;
+    int first_temp = recorded_temps[next_index];
+
+    // Check for thermal runaway
+    if (first_temp != -1) {              // -1 is uninitialized
+      if (target_temp > current_temp) {  // heating up
+        if (current_temp - first_temp < THERMAL_PROTECTION_HYSTERESIS) {
+          disable_heater();
+          throw_error("Thermal Runaway!");
+          error_thrown = true;
+        }
+      } else if (first_temp - current_temp < THERMAL_PROTECTION_HYSTERESIS) {
+        // target_temp < current_temp -- cooling down
+        disable_heater();
+        throw_error("Cooling Failed!");
+        error_thrown = true;
+      }
+    }
   }
 
-  // update the temperature and PID
-  updateTemperature();
-  heaterPID.run();
-
-  // apply new PID value
-  if (int(heater_pwm) != int(last_pwm)) {
-    last_pwm = heater_pwm;
-    analogWrite(HEATER_PIN, int(heater_pwm));
-  }
-
-  // light up LED when we're at setpoint +-1 degree
-  digitalWrite(LED_BUILTIN, heaterPID.atSetPoint(1));
-
-  // Check for heating errors
-  // overheat
+  // Overheat checks
   if (current_temp > MAX_TEMP) {
     disable_heater();
     throw_error("Max Temp Hit!");
     error_thrown = true;
   }
-  // thermal overshoot
-  // TODO: Only run once target temp has been reached. Otherwise
-  // an error will be thrown if the user lowers the target temp while hot.
-  else if (heatingEnabled && current_temp - target_temp > HEATER_OVERSHOOT) {
-    disable_heater();
-    throw_error("Heater Overshoot!");
-    error_thrown = true;
+}
+
+void heater_loop() {
+  // only throw an error once (until a reset)
+  if (error_thrown) {
+    return;
   }
 
-  // TODO: Implement thermal runaway protection to detect faulty thermistor.
-  // Runs until target temp has been reached.
+  updateTemperature();
+
+  if (heatingEnabled) {
+    // Update PID
+    heaterPID.run();
+    if (int(heater_pwm) != int(last_pwm)) {
+      last_pwm = heater_pwm;
+      analogWrite(HEATER_PIN, int(heater_pwm));
+    }
+    // light up LED when we're at setpoint +-1 degree
+    digitalWrite(LED_BUILTIN, heaterPID.atSetPoint(1));
+
+    // Thermal Protection Checks
+    check_thermal_safety();
+  }
 }
 
 /******************************************
@@ -147,10 +191,6 @@ FastAccelStepper *stepper = NULL;
  * Run Motor if Temp Reached
  * Callback to see if stepper should continue to run
  * or be shut off.
- * TODO: add thermal panic protection (temp suddenly drops,
- * goes above TEMP_VARIANCE bound, or doesn't follow heater
- * for too long)
- * then rename the function to remain descriptive
  */
 void runMotorIfTempReached(double current_temp, double target_temp) {
   if (pullingEnabled && current_temp >= target_temp - TEMP_VARIANCE) {
@@ -461,6 +501,9 @@ void setup() {
   heaterPID.setBangBang(BANG_BANG_RANGE);
   // set PID update interval
   heaterPID.setTimeStep(TEMP_READ_DELAY);
+  // initialize the temp array
+  reset_recorded_temps();
+
 
 /***********
  * Puller
