@@ -58,12 +58,14 @@ double last_pwm = 0;                // keeps track of the last value for less fr
 bool heatingEnabled = false;
 bool error_thrown = false;
 // thermal runaway
-int recorded_temps[CHECKS_PER_PERIOD];                                      // keeps track of temps over THERMAL_PROTECTION_PERIOD seconds
-int current_index = 0;                                                      // current write index for temps
-int next_index = 0;                                                         // next index to write temp into/last index written to
+int recorded_temps[CHECKS_PER_PERIOD];  // keeps track of temps over THERMAL_PROTECTION_PERIOD seconds
+int current_index = 0;                  // current write index for temps
+int next_index = 0;                     // next index to write temp into/last index written to
+bool cooling = false;
 #define TEMP_CHECK_MS THERMAL_PROTECTION_PERIOD * 1000 / CHECKS_PER_PERIOD  // how many milliseconds between temperature checks
-int last_thermal_check_time = 0;                                            // last time temp was checked for thermal errors
-
+unsigned long last_thermal_check_time = 0;                                  // last time temp was checked for thermal errors
+// PID timing
+unsigned long last_PID_time = 0;  // last time PID was run
 
 float KP = DEFAULT_KP, KI = DEFAULT_KI, KD = DEFAULT_KD;
 
@@ -117,6 +119,19 @@ void check_thermal_safety() {
        current_temp > target_temp + TEMP_VARIANCE)) {        // cooling
     last_thermal_check_time = millis();
 
+    // switch between heating and cooling thermal fault detection
+    if (current_temp < target_temp - TEMP_VARIANCE && cooling) {  // if below temp but not heating
+      // set to heating mode
+      cooling = false;
+      // reset the temps array
+      reset_recorded_temps();
+    } else if (current_temp > target_temp + TEMP_VARIANCE && !cooling) {  // if above temp but not cooling
+      // set to cooling mode
+      cooling = true;
+      // reset the temps array
+      reset_recorded_temps();
+    }
+
     // Move forward in the temps array
     current_index = next_index;
     next_index += 1;
@@ -132,13 +147,15 @@ void check_thermal_safety() {
     // Check for thermal runaway
     if (first_temp != -1) {              // -1 is uninitialized
       if (target_temp > current_temp) {  // heating up
-        if (current_temp - first_temp < THERMAL_PROTECTION_HYSTERESIS) {
+        cooling = false;
+        if (!cooling && current_temp - first_temp < THERMAL_PROTECTION_HYSTERESIS) {
           disable_heater();
-          throw_error("Thermal Runaway!");
+          throw_error(current_temp);
           error_thrown = true;
         }
-      } else if (first_temp - current_temp < THERMAL_PROTECTION_HYSTERESIS) {
+      } else if (cooling && first_temp - current_temp < THERMAL_PROTECTION_HYSTERESIS) {
         // target_temp < current_temp -- cooling down
+        cooling = true;
         disable_heater();
         throw_error("Cooling Failed!");
         error_thrown = true;
@@ -164,7 +181,9 @@ void heater_loop() {
 
   if (heatingEnabled) {
     // Update PID
-    heaterPID.run();
+    if (millis() - last_PID_time > PID_PERIOD) {
+      heaterPID.run();
+    }
     if (int(heater_pwm) != int(last_pwm)) {
       last_pwm = heater_pwm;
       analogWrite(HEATER_PIN, int(heater_pwm));
