@@ -105,7 +105,7 @@ void disable_heater() {
 }
 
 void reset_recorded_temps() {
-  for (int i = 0; i <= CHECKS_PER_PERIOD; i++) {
+  for (int i = 0; i < CHECKS_PER_PERIOD; i++) {
     recorded_temps[i] = -1;
   }
 }
