@@ -171,10 +171,11 @@ void check_thermal_safety() {
   }
 }
 
-void heater_loop() {
+/// @brief Runs the heater. Returns true if the heater up to temp.
+bool heater_loop() {
   // only throw an error once (until a reset)
   if (error_thrown) {
-    return;
+    return false;
   }
 
   updateTemperature();
@@ -193,7 +194,11 @@ void heater_loop() {
 
     // Thermal Protection Checks
     check_thermal_safety();
+
+    return current_temp > target_temp - TEMP_VARIANCE; // heated
   }
+
+  return false;
 }
 
 /******************************************
@@ -211,8 +216,8 @@ FastAccelStepper *stepper = NULL;
  * Callback to see if stepper should continue to run
  * or be shut off.
  */
-void runMotorIfTempReached(double current_temp, double target_temp) {
-  if (pullingEnabled && current_temp >= target_temp - TEMP_VARIANCE) {
+void runMotorIfTempReached(bool at_temp) {
+  if (pullingEnabled && at_temp) {
     // Temp is reached
     if (!stepper->isRunning()) {
       // only tell the stepper to run if it isn't already
@@ -262,8 +267,8 @@ bool motor_running = false;
 /***************************
  * Run Motor if Temp Reached
  */
-void runMotorIfTempReached(double current_temp, double target_temp) {
-  if (pullingEnabled && current_temp >= target_temp - TEMP_VARIANCE) {
+void runMotorIfTempReached(bool at_temp) {
+  if (pullingEnabled && at_temp) {
     // Temp is reached
     if (!motor_running) {
       // only tell the motor to run if it isn't already
@@ -576,17 +581,15 @@ void setup() {
 }
 
 void loop() {
-  // check if motor should keep running. Motor won't run until temperature is reached.
-  runMotorIfTempReached(current_temp, target_temp);
-
-  up_btn.loop();
-  select_btn.loop();
-  down_btn.loop();
-
   /*********
    * Temperature
    */
-  heater_loop();
+  bool heated = heater_loop();
+
+
+  // check if motor should keep running. Motor won't run until temperature is reached.
+  runMotorIfTempReached(heated);
+
 
   /***********
    * Menu
@@ -595,6 +598,10 @@ void loop() {
   if (error_thrown) {
     return;
   }
+
+  up_btn.loop();
+  select_btn.loop();
+  down_btn.loop();
 
   if (int(current_temp) != int(last_temp) && millis() - last_update > MIN_DISPLAY_UPDATE_MILLIS) {
     last_update = millis();
