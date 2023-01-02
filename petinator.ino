@@ -150,7 +150,7 @@ void check_thermal_safety() {
         cooling = false;
         if (!cooling && current_temp - first_temp < THERMAL_PROTECTION_HYSTERESIS) {
           disable_heater();
-          throw_error(current_temp);
+          throw_error("Thermal Runaway!");
           error_thrown = true;
         }
       } else if (cooling && first_temp - current_temp < THERMAL_PROTECTION_HYSTERESIS) {
