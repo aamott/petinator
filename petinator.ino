@@ -18,7 +18,7 @@
 #include <thermistor.h>
 #include <LiquidMenu.h>
 #include <LiquidCrystal.h>
-#include <FastAccelStepper.h>
+#include <AccelStepper.h>
 #include <ezButton.h>
 #include <EEPROM.h>
 
@@ -150,7 +150,7 @@ void check_thermal_safety() {
         cooling = false;
         if (!cooling && current_temp - first_temp < THERMAL_PROTECTION_HYSTERESIS) {
           disable_heater();
-          throw_error(current_temp);
+          throw_error("Thermal Runaway!");
           error_thrown = true;
         }
       } else if (cooling && first_temp - current_temp < THERMAL_PROTECTION_HYSTERESIS) {
@@ -195,7 +195,7 @@ bool heater_loop() {
     // Thermal Protection Checks
     check_thermal_safety();
 
-    return current_temp > target_temp - TEMP_VARIANCE; // heated
+    return current_temp > target_temp - TEMP_VARIANCE;  // heated
   }
 
   return false;
@@ -208,8 +208,7 @@ long target_speed = DEFAULT_SPEED;
 bool pullingEnabled = false;
 
 #ifdef USES_STEPPER
-FastAccelStepperEngine engine = FastAccelStepperEngine();
-FastAccelStepper *stepper = NULL;
+AccelStepper stepper(AccelStepper::DRIVER, STEP_PIN, DIR_PIN);
 
 /***************************
  * Run Motor if Temp Reached
@@ -217,15 +216,19 @@ FastAccelStepper *stepper = NULL;
  * or be shut off.
  */
 void runMotorIfTempReached(bool at_temp) {
+
+  stepper.runSpeed();
+
   if (pullingEnabled && at_temp) {
     // Temp is reached
-    if (!stepper->isRunning()) {
+    if (stepper.speed() == 0) {
       // only tell the stepper to run if it isn't already
-      stepper->runForward();
+      stepper.enableOutputs();
+      stepper.setSpeed(target_speed);
     }
-  } else if (stepper->isRunning()) {
-    // Don't run stepper until temp is reached
-    stepper->stopMove();
+  } else {
+    // Don't run stepper until temp is reached and enabled
+    stepper.setSpeed(0);
   }
 }
 
@@ -234,9 +237,8 @@ void increase_speed() {
   if (target_speed > MAX_SPEED) {
     target_speed = MAX_SPEED;
   }
-  if (stepper->isRunning()) {
-    stepper->setSpeedInHz(target_speed);
-    stepper->runForward();
+  if (stepper.speed() != 0) {
+    stepper.setSpeed(target_speed);
   }
 }
 
@@ -245,22 +247,26 @@ void decrease_speed() {
   if (target_speed < 0) {
     target_speed = 0;
   }
-  if (stepper->isRunning()) {
-    stepper->setSpeedInHz(target_speed);
-    stepper->runForward();
+  if (stepper.speed() != 0) {
+    stepper.setSpeed(target_speed);
   }
 }
 
 void toggle_puller() {
-
-  // if(pullingEnabled) stepper->stopMove();
   pullingEnabled = !pullingEnabled;
+  if (!pullingEnabled) stepper.setSpeed(0);
+  else {
+    stepper.setSpeed(target_speed);
+    stepper.enableOutputs();
+  }
 }
 
 void disable_puller() {
   pullingEnabled = false;
-  stepper->stopMove();
+  stepper.setSpeed(0);
+  stepper.disableOutputs();
 }
+
 
 #else  // end USES_STEPPER, start USES_PWM_MOTOR
 bool motor_running = false;
@@ -533,16 +539,13 @@ void setup() {
  * Puller
  */
 #ifdef USES_STEPPER
-  engine.init();
-  stepper = engine.stepperConnectToPin(STEP_PIN);
-  if (stepper) {
-    stepper->setDirectionPin(DIR_PIN);
-    stepper->setEnablePin(ENABLE_PIN);
-    stepper->setAutoEnable(true);
+  stepper.setEnablePin(ENABLE_PIN);
+  stepper.setPinsInverted(false, false, true);
+  stepper.setMaxSpeed(MAX_SPEED);
+  stepper.disableOutputs();
 
-    stepper->setSpeedInHz(target_speed);
-    stepper->setAcceleration(ACCELERATION);
-  }
+  stepper.setSpeed(target_speed);
+  stepper.setAcceleration(ACCELERATION);
 #else  // a DC motor is assumed
   pinMode(MOTOR_PWM_PIN, OUTPUT);
   pinMode(DIR_PIN, OUTPUT);
