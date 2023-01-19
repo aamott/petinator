@@ -4,6 +4,9 @@
 * for the PETInator.
 *******************************************/
 
+#ifndef CONFIGURATION_H
+  #define CONFIGURATION_H
+
 /******************************************
 * Thermistor
 * Wiring: https://learn.adafruit.com/thermistor/using-a-thermistor
@@ -99,6 +102,14 @@
 #define MIN_DISPLAY_UPDATE_MILLIS 500
 
 
+// Define the class name
+#ifdef I2C_LCD
+  #define LCD_CLASS hd44780_I2Cexp
+#else
+  #define LCD_CLASS hd44780_pinIO
+#endif
+
+
 /******************************************
 * Pinout
 * Physical pins used
@@ -150,3 +161,4 @@
   #define LCD_RS 5
 #endif
   
+#endif // CONFIGURATION_H
