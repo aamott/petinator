@@ -234,12 +234,17 @@ public:
   /// @param num_lines the number of lines to print
   /// @param outdev the device to print to
   void print_lines(uint8_t start_idx, uint8_t num_lines, hd44780 &outdev) {
-    if (start_idx + num_lines < _num_lines) {
-      for (uint8_t i = 0; i < num_lines; i++) {
-        // move to the start of the line
-        outdev.setCursor(0, i);
+    for (uint8_t row = 0; row < num_lines; row++) {
+      // move to start of the line
+      outdev.setCursor(0, row);
+
+      if (row + start_idx < _num_lines) {
         // ask the line to print
-        lines[i + start_idx]->print_line(outdev);
+        lines[row + start_idx]->print_line(outdev);
+      } else {
+        // clear the next line
+        for (uint8_t col = 0; col < COLUMNS; col++)
+          outdev.print(' ');
       }
     }
   }
@@ -353,7 +358,8 @@ public:
 
   /// @brief Display menu to the screen
   void display() {
-    _lcd.clear();
+    // TODO: Only display if a line or variable has changed
+    // _lcd.clear();
 
     _screens[_current_screen_idx]->print_lines(_current_top_line_idx, _rows, _lcd);
   }
