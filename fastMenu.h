@@ -50,19 +50,24 @@ public:
 
   /// @brief Controls
   void select() {
-    select_func();
+    if (select_func)
+      select_func();
   };
   void up() {
-    up_func();
+    if (up_func)
+      up_func();
   };
   void down() {
-    down_func();
+    if (down_func)
+      down_func();
   };
   void left() {
-    left_func();
+    if (left_func)
+      left_func();
   };
   void right() {
-    right_func();
+    if (right_func)
+      right_func();
   };
 
 
