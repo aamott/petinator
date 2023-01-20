@@ -162,14 +162,14 @@ public:
   /// @brief add a line to the screen
   /// @param line - a line object to add
   /// @return true if the line was successfully added
-  bool add_line(FastLineGeneric *line) {
+  bool add_line(FastLineGeneric &line) {
     // check that there are not too many lines
     if (_num_lines >= MAX_LINES) {
       return false;
     }
 
     // add the line
-    lines[_num_lines++] = line;
+    lines[_num_lines++] = &line;
     return true;
   }
 
@@ -263,7 +263,7 @@ private:
   typedef FastScreen *FastScreenPtr;
   FastScreenPtr *_screens = new FastScreenPtr[MAX_SCREENS];
   const uint8_t _columns, _rows;
-  LCD_CLASS & _lcd;
+  LCD_CLASS &_lcd;
 
 
 public:
@@ -271,19 +271,24 @@ public:
   /// @brief Class constructor
   /// @param &lcd - A reference to an initialized hd44780 lcd object or an inheriting object
   FastMenu(LCD_CLASS &lcd, uint8_t columns = 16, uint8_t rows = 2)
-    : _columns(columns), _rows(rows), _lcd(lcd) {
+    : _lcd(lcd), _columns(columns), _rows(rows) {
   }
+
 
   /// @brief Add a screen to the menu
   /// @param screen - the screen to add
   /// @return true if the screen was added, false otherwise
   bool add_screen(FastScreen &screen) {
+    // check for overflow
     if (_num_screens >= MAX_SCREENS) {
       return false;
     }
+
+    // add the screen
     _screens[_num_screens++] = &screen;
     return true;
   }
+
 
   /// @brief updates the top line's index
   void update_top_idx() {
@@ -331,12 +336,12 @@ public:
 
   /// @brief switch to the next screen
   void next_screen() {
-    _current_screen_idx++;
+    set_screen(_current_screen_idx + 1);
   }
 
   // @brief switch to the previous screen
   void previous_screen() {
-    _current_screen_idx--;
+    set_screen(_current_screen_idx - 1);
   }
 
   void set_screen(int screen_idx) {
