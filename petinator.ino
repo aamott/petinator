@@ -590,6 +590,7 @@ void loop() {
    */
   // skip menu updates and controls if an error has been thrown. Leave the error on display.
   if (error_thrown) {
+    menu.update();
     return;
   }
 
