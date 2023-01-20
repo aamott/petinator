@@ -513,6 +513,10 @@ void setup() {
 #endif
 
   lcd.begin(COLUMNS, ROWS);
+  lcd.print(BOOT_MESSAGE);
+  delay(BOOT_DELAY);
+  lcd.clear();
+  lcd.home();
 
   /***********
      * EEPROM

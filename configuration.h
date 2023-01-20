@@ -90,6 +90,11 @@
 * DISPLAY
 * Wiring: https://create.arduino.cc/projecthub/Hack-star-Arduino/learn-to-use-lcd-1602-i2c-parallel-with-arduino-uno-f73f07
 */
+// Message to display on boot
+#define BOOT_MESSAGE "PETInator 1.0"
+// How long to show the boot message
+#define BOOT_DELAY 1500
+
 // Use display with I2C controller
 #define I2C_LCD
 
