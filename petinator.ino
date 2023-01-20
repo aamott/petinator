@@ -16,11 +16,19 @@
 
 #include <AutoPID.h>
 #include <thermistor.h>
-#include <LiquidMenu.h>
-#include <LiquidCrystal.h>
 #include <AccelStepper.h>
 #include <ezButton.h>
 #include <EEPROM.h>
+#include "fastMenu.cpp"
+// display libraries
+#include <Wire.h>
+#include <hd44780.h>
+
+#ifdef I2C_LCD
+#include <hd44780ioClass/hd44780_I2Cexp.h>  // i2c expander i/o class header
+#else
+#include <hd44780ioClass/hd44780_pinIO.h>  // Arduino pin i/o class header
+#endif
 
 #include "configuration.h"
 
@@ -40,7 +48,7 @@ double current_temp = 0;       // celsius
 double last_temp = 0;          // celsius
 thermistor temp_sensor(THERMISTOR_PIN, THERMISTOR_TYPE);
 
-bool updateTemperature() {
+void updateTemperature() {
   if ((millis() - lastTempUpdate) > TEMP_READ_DELAY) {
     current_temp = temp_sensor.analog2temp();  // get temp reading
     lastTempUpdate = millis();
@@ -369,7 +377,7 @@ void SaveParameters() {
 }
 
 void LoadParameters() {
-  if (eeprom_initialized) {
+  if (eeprom_initialized()) {
     // Load from EEPROM
     target_temp = EEPROM_readDouble(TtAddress);
     KP = EEPROM_readDouble(KpAddress);
@@ -387,7 +395,7 @@ void LoadParameters() {
 
 void EEPROM_writeDouble(int address, double value) {
   byte *p = (byte *)(void *)&value;
-  for (int i = 0; i < sizeof(value); i++) {
+  for (unsigned int i = 0; i < sizeof(value); i++) {
     EEPROM.write(address++, *p++);
   }
 }
@@ -395,7 +403,7 @@ void EEPROM_writeDouble(int address, double value) {
 double EEPROM_readDouble(int address) {
   double value = 0.0;
   byte *p = (byte *)(void *)&value;
-  for (int i = 0; i < sizeof(value); i++) {
+  for (unsigned int i = 0; i < sizeof(value); i++) {
     *p++ = EEPROM.read(address++);
   }
   return value;
@@ -422,22 +430,25 @@ ControlState controlState = CTRL_SET_LINE;
 /****************************************
  * DISPLAY
  * Wiring: https://create.arduino.cc/projecthub/Hack-star-Arduino/learn-to-use-lcd-1602-i2c-parallel-with-arduino-uno-f73f07
+ *    i2c LCD Module  ==>   Arduino Pin
+ *    SCL             ==>     A5
+ *    SDA             ==>     A4
+ *    Vcc             ==>     Vcc (5v)
+ *    Gnd             ==>     Gnd
  */
 // makes sure the display doesn't update too fast
 unsigned long last_update = 0;
 
 #ifdef I2C_LCD
-#include <LiquidCrystal_I2C.h>
-LiquidCrystal_I2C lcd(LCD_ADDRESS, COLUMNS, ROWS);  // if the address 0x27 doesn't work, try 0x3f
-                                                    /* Wiring:
-                                                    *    i2c LCD Module  ==>   Arduino Pin
-                                                    *    SCL             ==>     A5
-                                                    *    SDA             ==>     A4
-                                                    *    Vcc             ==>     Vcc (5v)
-                                                    *    Gnd             ==>     Gnd      */
+#ifdef LCD_ADDRESS
+hd44780_I2Cexp lcd(LCD_ADDRESS, COLUMNS, ROWS);  // if the address 0x27 doesn't work, try 0x3f
 #else
-#include <LiquidCrystal.h>
-LiquidCrystal lcd(LCD_RS, LCD_E, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
+hd44780_I2Cexp lcd;  // declare lcd object: auto locate & auto config expander chip
+#endif
+
+#else
+
+hd44780_pinIO lcd(LCD_RS, LCD_E, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 /* Wiring:
  *  LCD Module  ==>   Arduino Pin
  *  D7  ==> 0
@@ -450,48 +461,37 @@ LiquidCrystal lcd(LCD_RS, LCD_E, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
  */
 #endif
 
-LiquidLine welcome_line1(4, 0, "Welcome");
-LiquidLine welcome_line2(1, 1, "To Filamaker");
-LiquidScreen welcome_screen(welcome_line1, welcome_line2);
-
 // Status
-LiquidLine actual_temp_line(0, 0, "Temp: ", current_temp, " C");
-LiquidLine actual_speed_line(0, 1, "Speed: ", target_speed);  // current_speed will fluctuate a lot. Better to show current speed.
-// LiquidScreen status_screen(actual_temp_line, actual_speed_line);
+FastLine<double> actual_temp_line(0, 0, "Temp(C): ", current_temp);
+FastLine<long> actual_speed_line(0, 1, "Speed: ", target_speed);  // current_speed will fluctuate a lot. Better to show target speed.
 
 // Edit
-LiquidLine set_temp_line(0, 2, "Set Temp: ", target_temp, " C");
-LiquidLine set_speed_line(0, 3, "Set Speed: ", target_speed);
-// LiquidScreen edit_screen(set_temp_line, set_speed_line);
+FastLine<double> set_temp_line(0, 2, "Set Temp(C): ", target_temp);
+FastLine<long> set_speed_line(0, 3, "Set Speed: ", target_speed);
 
 // Enable
-LiquidLine enable_heater_line(0, 4, "Start Heater: ", heatingEnabled);
-LiquidLine enable_puller_line(0, 5, "Start Puller: ", pullingEnabled);
-// LiquidScreen enable_screen(enable_heater_line, enable_puller_line, set_temp_line, set_speed_line, actual_temp_line, actual_speed_line);
+FastLine<bool> enable_heater_line(0, 4, "Start Heater: ", heatingEnabled);
+FastLine<bool> enable_puller_line(0, 5, "Start Puller: ", pullingEnabled);
 
 //  EEPROM
-LiquidLine save_parameters_line(0, 6, "Save: ", saved_status);
+FastLine<bool> save_parameters_line(0, 6, "Save: ", saved_status);
 
-// LiquidLine start_line(0, 0, "Start: ", menu_message);
-// LiquidScreen enable_screen(start_line);
-LiquidScreen main_screen;
-LiquidScreen error_screen;
+FastScreen main_screen;
+FastScreen error_screen;
 
-LiquidMenu menu(lcd);
+FastMenu menu(lcd, COLUMNS, ROWS);
 
 
 /*
 * Displays an error message and stops pulling and heating
 */
-template<typename A>
-void throw_error(const A &message) {
-  LiquidLine error_line(0, 0, message);
-  error_screen.add_line(error_line);
-  error_screen.set_displayLineCount(1);
+void throw_error(const char * message) {
+  FastLine<> error_line(0, 0, message);
+  error_screen.add_line(&error_line);
   menu.add_screen(error_screen);
 
   // switch to the newly created error screen
-  menu.change_screen(2);
+  menu.set_screen(1);
 
   // stop pulling and heating
   disable_heater();
@@ -556,30 +556,22 @@ void setup() {
   /***********
      * Menu
      */
-  set_temp_line.attach_function(1, increase_temp);
-  set_temp_line.attach_function(2, decrease_temp);
+  set_temp_line.add_controls(NULL, increase_temp, decrease_temp);
+  set_speed_line.add_controls(NULL, increase_speed, decrease_speed);
+  enable_heater_line.add_controls(toggle_heater);
+  enable_puller_line.add_controls(toggle_puller);
+  save_parameters_line.add_controls(SaveParameters);
 
-  set_speed_line.attach_function(1, increase_speed);
-  set_speed_line.attach_function(2, decrease_speed);
+  // set_temp_line.set_decimalPlaces(0);
+  // actual_temp_line.set_decimalPlaces(0);
 
-  enable_heater_line.attach_function(1, toggle_heater);
-
-  enable_puller_line.attach_function(1, toggle_puller);
-  // start_line.attach_function(1, toggle_running);
-
-  save_parameters_line.attach_function(1, SaveParameters);
-
-  set_temp_line.set_decimalPlaces(0);
-  actual_temp_line.set_decimalPlaces(0);
-
-  main_screen.add_line(enable_heater_line);
-  main_screen.add_line(enable_puller_line);
-  main_screen.add_line(set_temp_line);
-  main_screen.add_line(set_speed_line);
-  main_screen.add_line(save_parameters_line);
-  main_screen.add_line(actual_temp_line);
-  main_screen.add_line(actual_speed_line);
-  main_screen.set_displayLineCount(2);
+  main_screen.add_line(&enable_heater_line);
+  main_screen.add_line(&enable_puller_line);
+  main_screen.add_line(&set_temp_line);
+  main_screen.add_line(&set_speed_line);
+  main_screen.add_line(&save_parameters_line);
+  main_screen.add_line(&actual_temp_line);
+  main_screen.add_line(&actual_speed_line);
   menu.add_screen(main_screen);
 }
 
@@ -611,72 +603,19 @@ void loop() {
     last_temp = current_temp;
     menu.update();
   }
-  bool up_pressed = false;
-  bool down_pressed = false;
-  bool select_pressed = false;
 
   if (!up_btn.getState() && millis() - last_press_time > AUTO_PRESS_DELAY) {
-    up_pressed = true;
     last_press_time = millis();
+    menu.up();
   }
 
   else if (!down_btn.getState() && millis() - last_press_time > AUTO_PRESS_DELAY) {
-    down_pressed = true;
     last_press_time = millis();
+    menu.down();
   }
 
   else if (!select_btn.getState() && millis() - last_press_time > AUTO_PRESS_DELAY) {
-    select_pressed = true;
     last_press_time = millis();
-  }
-
-  // Navigation
-  switch (controlState) {
-    case CTRL_SET_SCREEN:  // cycling screens
-      if (up_pressed) {
-        menu.previous_screen();
-      } else if (down_pressed) {
-        menu.next_screen();
-      }
-
-      break;
-
-    case CTRL_SET_LINE:  // cycling through lines
-      if (up_pressed) {
-        menu.switch_focus(false);
-      } else if (down_pressed) {
-        menu.switch_focus(true);
-        // menu.switch_focus();
-      }
-
-      break;
-
-    case CTRL_SET_SETTING:  // changing a setting
-      if (up_pressed) {
-        menu.call_function(1);
-      } else if (down_pressed) {
-        menu.call_function(2);
-      }
-
-      break;
-
-    default:  // invalid state
-      controlState = CTRL_SET_SCREEN;
-      break;
-  }
-
-  if (select_pressed) {
-    // if the line has two functions, it uses both arrows and needs control state changed
-    if (menu.is_callable(2)) {
-      if (controlState + 1 < CTRL_OUT_OF_BOUNDS) {
-        controlState = (ControlState)(controlState + 1);
-      } else {
-        controlState = CTRL_SET_LINE;
-      }
-    }
-    // otherwise, it is either a status or a button. Just try to run the function.
-    else {
-      menu.call_function(1);
-    }
+    menu.select();
   }
 }

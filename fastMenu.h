@@ -94,18 +94,18 @@ public:
 
   /// @brief Prints the line text using a Print object
   /// @param outdev - The Print object to send output to
-  void print_line(Print &outdev);
+  virtual void print_line(Print &outdev);
 };
 
 
 /********************************************
  * -------------- FastLine -----------------*
 ********************************************/
-template<typename A, typename T = int>
+template<typename T = int>
 class FastLine : public FastLineGeneric {
 private:
-  A _line;      // line to display
-  T _variable;  // variable to display after the string
+  const char *_line;  // line to display
+  T _variable;        // variable to display after the string
 
 
 public:
@@ -113,7 +113,7 @@ public:
   /// @param column - the column at which the line starts
   /// @param row - the row at which the line is printed
   /// @param &text - variable/constant to be printed
-  FastLine(uint8_t column, uint8_t row, A &text)
+  FastLine(uint8_t column, uint8_t row, const char *text)
     : FastLineGeneric(column, row), _line(text) {
   }
 
@@ -122,7 +122,7 @@ public:
   /// @param row - the row at which the line is printed
   /// @param &text - variable/constant to be printed
   /// @param &variable - variable to be printed and automatically updated
-  FastLine(uint8_t column, uint8_t row, A &text, T &variable)
+  FastLine(uint8_t column, uint8_t row, const char *text, T &variable)
     : FastLine(column, row, text) {
     _variable = variable;
     _variable_defined = true;
@@ -130,7 +130,7 @@ public:
 
   /// @brief Prints the line text using a Print object
   /// @param outdev - The Print object to send output to
-  void print_line(Print &outdev);  // overrides parent print_line
+  void print_line(Print &outdev) override;
 };
 
 
@@ -141,11 +141,18 @@ public:
 ********************************************/
 class FastScreen {
 private:
-  uint8_t num_lines = 0;
+  uint8_t _num_lines = 0;
   typedef FastLineGeneric *FastLinePtr;
   FastLinePtr *lines = new FastLinePtr[MAX_LINES];
-  uint8_t current_line = 0;
+  uint8_t _current_line = 0;
   bool focused = false;
+
+  void set_line(int line_idx) {
+    _current_line = line_idx;
+    if (_current_line >= _num_lines) {
+      _current_line = 0;
+    }
+  }
 
 public:
   /// @brief Constructor
@@ -158,12 +165,12 @@ public:
   /// @return true if the line was successfully added
   bool add_line(FastLineGeneric *line) {
     // check that there are not too many lines
-    if (num_lines >= MAX_LINES) {
+    if (_num_lines >= MAX_LINES) {
       return false;
     }
 
     // add the line
-    lines[num_lines++] = line;
+    lines[_num_lines++] = line;
     return true;
   }
 
@@ -173,10 +180,10 @@ public:
     // focus/unfocus the line
     if (focused == false) {
       // run the line's select
-      lines[current_line]->select();
+      lines[_current_line]->select();
 
       // focus the line if applicable
-      if (lines[current_line]->focusable()) {
+      if (lines[_current_line]->focusable()) {
         focused = true;
       }
     } else if (focused == true) {
@@ -188,9 +195,9 @@ public:
   /// @brief move selection up
   void up() {
     if (focused) {
-      lines[current_line]->up();
+      lines[_current_line]->up();
     } else {
-      current_line--;
+      _current_line--;
     }
   }
 
@@ -198,9 +205,9 @@ public:
   /// @brief move selection down
   void down() {
     if (focused) {
-      lines[current_line]->down();
+      lines[_current_line]->down();
     } else {
-      current_line++;
+      _current_line++;
     }
   }
 
@@ -208,7 +215,7 @@ public:
   /// @brief move selection up
   void left() {
     if (focused) {
-      lines[current_line]->left();
+      lines[_current_line]->left();
     }
   }
 
@@ -216,7 +223,7 @@ public:
   /// @brief move selection down
   void right() {
     if (focused) {
-      lines[current_line]->right();
+      lines[_current_line]->right();
     }
   }
 
@@ -226,13 +233,16 @@ public:
   /// @param num_lines the number of lines to print
   /// @param outdev the device to print to
   void print_lines(uint8_t start_idx, uint8_t num_lines, Print &outdev) {
-    for (uint8_t line_idx = start_idx; line_idx < start_idx + num_lines; line_idx++) {
-      lines[line_idx]->print_line(outdev);
+    if (start_idx + num_lines < _num_lines) {
+
+      for (uint8_t line_idx = start_idx; line_idx < start_idx + num_lines; line_idx++) {
+        lines[line_idx]->print_line(outdev);
+      }
     }
   }
 
   uint8_t get_current_idx() {
-    return current_line;
+    return _current_line;
   }
 };
 
@@ -317,6 +327,21 @@ public:
     _screens[_current_screen_idx]->right();
   }
 
+  /// @brief switch to the next screen
+  void next_screen() {
+    _current_screen_idx++;
+  }
+
+  // @brief switch to the previous screen
+  void previous_screen() {
+    _current_screen_idx--;
+  }
+
+  void set_screen(int screen_idx) {
+    if (screen_idx < _num_screens) {
+      _current_screen_idx = screen_idx;
+    }
+  }
 
 
   /// @brief Display menu to the screen
@@ -326,6 +351,8 @@ public:
     _screens[_current_screen_idx]->print_lines(_current_top_idx, _rows, _lcd);
   }
 
-  // /// @brief update the menu
-  // void update();
+  /// @brief update the menu
+  void update() {
+    display();
+  }
 };
