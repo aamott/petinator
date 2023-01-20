@@ -150,6 +150,8 @@ private:
     // wrap the line
     if (_current_line >= _num_lines) {
       _current_line = 0;
+    } else if (_current_line < 0) {
+      _current_line = _num_lines + 1;
     }
   }
 
@@ -196,7 +198,6 @@ public:
     if (focused) {
       lines[_current_line]->up();
     } else {
-      // _current_line--;
       set_line(_current_line - 1);
     }
   }
@@ -207,7 +208,6 @@ public:
     if (focused) {
       lines[_current_line]->down();
     } else {
-      // _current_line++;
       set_line(_current_line + 1);
     }
   }
