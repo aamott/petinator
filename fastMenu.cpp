@@ -21,7 +21,7 @@ template<typename T>
 void FastLine<T>::print_line(hd44780 &outdev) {
   // TODO: find a way to limit decimal point on floats
   outdev.print(_line);
-  outdev.print(_variable);
+  outdev.print(*_variable);
   // clear the display. faster than clearing the display;
   outdev.print("         ");
 }

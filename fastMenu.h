@@ -117,7 +117,7 @@ template<typename T = int>
 class FastLine : public FastLineGeneric {
 private:
   const char *_line;  // line to display
-  T _variable;        // variable to display after the string
+  T *_variable;        // variable to display after the string
 
 
 public:
@@ -136,7 +136,7 @@ public:
   /// @param &variable - variable to be printed and automatically updated
   FastLine(uint8_t column, uint8_t row, const char *text, T &variable)
     : FastLine(column, row, text) {
-    _variable = variable;
+    _variable = &variable;
   }
 
   /// @brief Prints the line text using a Print object
