@@ -18,7 +18,8 @@
 /// @brief Prints the line text using a Print object
 /// @param lcd - The Print object to send output to
 template<typename T>
-void FastLine<T>::print_line(Print &outdev) {
+void FastLine<T>::print_line(hd44780 &outdev) {
   // TODO: find a way to limit decimal point on floats
+  outdev.print(_line);
   outdev.print(_variable);
 }

@@ -25,7 +25,6 @@ protected:
   bool _focusable = false;  // whether the line is focusable
   const uint8_t _column;    // what row and column the line starts on
   const uint8_t _row;
-  bool _variable_defined = false;
 
   void (*select_func)();  // Function to run when select is called
   void (*up_func)();      // Function to run when up is called
@@ -94,7 +93,7 @@ public:
 
   /// @brief Prints the line text using a Print object
   /// @param outdev - The Print object to send output to
-  virtual void print_line(Print &outdev);
+  virtual void print_line(hd44780 &outdev);
 };
 
 
@@ -125,12 +124,11 @@ public:
   FastLine(uint8_t column, uint8_t row, const char *text, T &variable)
     : FastLine(column, row, text) {
     _variable = variable;
-    _variable_defined = true;
   }
 
   /// @brief Prints the line text using a Print object
   /// @param outdev - The Print object to send output to
-  void print_line(Print &outdev) override;
+  void print_line(hd44780 &outdev) override;
 };
 
 
@@ -149,6 +147,7 @@ private:
 
   void set_line(int line_idx) {
     _current_line = line_idx;
+    // wrap the line
     if (_current_line >= _num_lines) {
       _current_line = 0;
     }
@@ -197,7 +196,8 @@ public:
     if (focused) {
       lines[_current_line]->up();
     } else {
-      _current_line--;
+      // _current_line--;
+      set_line(_current_line - 1);
     }
   }
 
@@ -207,7 +207,8 @@ public:
     if (focused) {
       lines[_current_line]->down();
     } else {
-      _current_line++;
+      // _current_line++;
+      set_line(_current_line + 1);
     }
   }
 
@@ -232,11 +233,13 @@ public:
   /// @param start_idx first line to print
   /// @param num_lines the number of lines to print
   /// @param outdev the device to print to
-  void print_lines(uint8_t start_idx, uint8_t num_lines, Print &outdev) {
+  void print_lines(uint8_t start_idx, uint8_t num_lines, hd44780 &outdev) {
     if (start_idx + num_lines < _num_lines) {
-
-      for (uint8_t line_idx = start_idx; line_idx < start_idx + num_lines; line_idx++) {
-        lines[line_idx]->print_line(outdev);
+      for (uint8_t i = 0; i < num_lines; i++) {
+        // move to the start of the line
+        outdev.setCursor(-1, i);
+        // ask the line to print
+        lines[i + start_idx]->print_line(outdev);
       }
     }
   }
@@ -260,7 +263,7 @@ private:
   typedef FastScreen *FastScreenPtr;
   FastScreenPtr *_screens = new FastScreenPtr[MAX_SCREENS];
   const uint8_t _columns, _rows;
-  LCD_CLASS _lcd;
+  LCD_CLASS & _lcd;
 
 
 public:
