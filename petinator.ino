@@ -507,11 +507,6 @@ void setup() {
   pinMode(HEATER_PIN, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
 
-#ifdef I2C_LCD
-  lcd.init();
-  lcd.backlight();
-#endif
-
   lcd.begin(COLUMNS, ROWS);
   lcd.print(BOOT_MESSAGE);
   delay(BOOT_DELAY);
