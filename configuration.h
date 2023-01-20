@@ -91,7 +91,6 @@
 * Wiring: https://create.arduino.cc/projecthub/Hack-star-Arduino/learn-to-use-lcd-1602-i2c-parallel-with-arduino-uno-f73f07
 */
 // Use display with I2C controller
-// requires changing LiquidMenu_config.h - see https://github.com/VaSe7u/LiquidMenu/issues/36
 #define I2C_LCD
 
 // 1602 display would be 2 rows, 16 columns
