@@ -269,7 +269,6 @@ public:
   /// @param &lcd - A reference to an initialized hd44780 lcd object or an inheriting object
   FastMenu(LCD_CLASS &lcd, uint8_t columns = 16, uint8_t rows = 2)
     : _columns(columns), _rows(rows), _lcd(lcd) {
-    _lcd.begin(_columns, _rows);
   }
 
   /// @brief Add a screen to the menu
