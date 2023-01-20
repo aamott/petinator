@@ -237,7 +237,7 @@ public:
     if (start_idx + num_lines < _num_lines) {
       for (uint8_t i = 0; i < num_lines; i++) {
         // move to the start of the line
-        outdev.setCursor(-1, i);
+        outdev.setCursor(0, i);
         // ask the line to print
         lines[i + start_idx]->print_line(outdev);
       }
