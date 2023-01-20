@@ -150,16 +150,17 @@ private:
   uint8_t _num_lines = 0;
   typedef FastLineGeneric *FastLinePtr;
   FastLinePtr *lines = new FastLinePtr[MAX_LINES];
-  uint8_t _current_line = 0;
+  int8_t _current_line = 0;
   bool focused = false;
 
   void set_line(int line_idx) {
     _current_line = line_idx;
+
     // wrap the line
     if (_current_line >= _num_lines) {
       _current_line = 0;
     } else if (_current_line < 0) {
-      _current_line = _num_lines + 1;
+      _current_line = _num_lines - 1;
     }
   }
 
