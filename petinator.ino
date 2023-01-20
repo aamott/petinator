@@ -597,7 +597,7 @@ void loop() {
   select_btn.loop();
   down_btn.loop();
 
-  if (int(current_temp) != int(last_temp) && millis() - last_update > MIN_DISPLAY_UPDATE_MILLIS) {
+  if (millis() - last_update > MIN_DISPLAY_UPDATE_MILLIS) {
     last_update = millis();
     last_temp = current_temp;
     menu.update();
