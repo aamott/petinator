@@ -259,7 +259,7 @@ class FastMenu {
 private:
   uint8_t _num_screens = 0;
   uint8_t _current_screen_idx = 0;
-  uint8_t _current_top_idx = 0;
+  uint8_t _current_top_line_idx = 0;
   typedef FastScreen *FastScreenPtr;
   FastScreenPtr *_screens = new FastScreenPtr[MAX_SCREENS];
   const uint8_t _columns, _rows;
@@ -294,8 +294,8 @@ public:
   void update_top_idx() {
     // get the index of the top line
     //(idx-1)-(idx-1)%rows
-    uint8_t current_idx = _screens[_current_screen_idx]->get_current_idx();
-    _current_top_idx = (current_idx - 1) - (current_idx - 1) % _rows;
+    uint8_t current_line_idx = _screens[_current_screen_idx]->get_current_idx();
+    _current_top_line_idx = (current_line_idx) - (current_line_idx) % _rows;
   }
 
 
@@ -355,7 +355,7 @@ public:
   void display() {
     _lcd.clear();
 
-    _screens[_current_screen_idx]->print_lines(_current_top_idx, _rows, _lcd);
+    _screens[_current_screen_idx]->print_lines(_current_top_line_idx, _rows, _lcd);
   }
 
   /// @brief update the menu
