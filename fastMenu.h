@@ -52,10 +52,18 @@ public:
   void select() {
     select_func();
   };
-  void up(){};
-  void down(){};
-  void left(){};
-  void right(){};
+  void up() {
+    up_func();
+  };
+  void down() {
+    down_func();
+  };
+  void left() {
+    left_func();
+  };
+  void right() {
+    right_func();
+  };
 
 
   /// @brief Adds a variable to be displayed at the end of the line
