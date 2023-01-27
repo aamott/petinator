@@ -578,8 +578,16 @@ void loop() {
   /*********
    * Temperature
    */
-  bool heated = heater_loop();
 
+   // Don't run heater loop at the same time as display update. 
+   // Keeps stepper more consistent
+   if (millis() - last_update > MIN_DISPLAY_UPDATE_MILLIS) {
+    last_update = millis();
+    last_temp = current_temp;
+    menu.update();
+  } else {
+    bool heated = heater_loop();
+  }
 
   // check if motor should keep running. Motor won't run until temperature is reached.
   runMotorIfTempReached(heated);
@@ -598,24 +606,21 @@ void loop() {
   select_btn.loop();
   down_btn.loop();
 
-  if (millis() - last_update > MIN_DISPLAY_UPDATE_MILLIS) {
-    last_update = millis();
-    last_temp = current_temp;
-    menu.update();
-  }
-
   if (!up_btn.getState() && millis() - last_press_time > AUTO_PRESS_DELAY) {
     last_press_time = millis();
     menu.up();
+    menu.update();
   }
 
   else if (!down_btn.getState() && millis() - last_press_time > AUTO_PRESS_DELAY) {
     last_press_time = millis();
     menu.down();
+    menu.update();
   }
 
   else if (!select_btn.getState() && millis() - last_press_time > AUTO_PRESS_DELAY) {
     last_press_time = millis();
     menu.select();
+    menu.update();
   }
 }
