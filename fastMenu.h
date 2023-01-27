@@ -261,6 +261,10 @@ public:
           outdev.print(' ');
       }
     }
+
+    // add a cursor
+    outdev.setCursor(COLUMNS - 1, _current_line % ROWS);
+    outdev.print('<');
   }
 
   uint8_t get_current_idx() {

@@ -466,8 +466,8 @@ FastLine<double> actual_temp_line(0, 0, "Temp(C): ", current_temp);
 FastLine<long> actual_speed_line(0, 1, "Speed: ", target_speed);  // current_speed will fluctuate a lot. Better to show target speed.
 
 // Edit
-FastLine<double> set_temp_line(0, 2, "Set Temp(C): ", target_temp);
-FastLine<long> set_speed_line(0, 3, "Set Speed: ", target_speed);
+FastLine<double> set_temp_line(0, 2, "Set Temp(C):", target_temp);
+FastLine<long> set_speed_line(0, 3, "Set Speed:", target_speed);
 
 // Enable
 FastLine<bool> enable_heater_line(0, 4, "Start Heater: ", heatingEnabled);
