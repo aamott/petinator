@@ -579,14 +579,16 @@ void loop() {
    * Temperature
    */
 
-   // Don't run heater loop at the same time as display update. 
-   // Keeps stepper more consistent
-   if (millis() - last_update > MIN_DISPLAY_UPDATE_MILLIS) {
+  bool heated;
+
+  // Don't run heater loop at the same time as display update.
+  // Keeps stepper more consistent
+  if (millis() - last_update > MIN_DISPLAY_UPDATE_MILLIS) {
     last_update = millis();
     last_temp = current_temp;
     menu.update();
   } else {
-    bool heated = heater_loop();
+    heated = heater_loop();
   }
 
   // check if motor should keep running. Motor won't run until temperature is reached.
