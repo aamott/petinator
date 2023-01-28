@@ -45,7 +45,7 @@ public:
 
 
   /// @brief get the speed in mm/s
-  unsigned float speed_mms() {
+  float speed_mms() {
     // TODO: Just calculate this every time the speed changes and return the variable.
     // return millimeters_per_second
     return (float)speed_sps() / _steps_per_mm;
