@@ -17,6 +17,7 @@
 #include <AutoPID.h>
 #include <thermistor.h>
 #include <AccelStepper.h>
+#include "stepper.h"
 #include <ezButton.h>
 #include <EEPROM.h>
 #include "fastMenu.cpp"
