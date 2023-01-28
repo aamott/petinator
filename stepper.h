@@ -89,7 +89,7 @@ public:
     }
 
     // set stepper direction
-    digitalWrite(_direction_pin, reverse_direction);
+    digitalWrite(_direction_pin, !reverse_direction);
 
     // enable stepper
     if (_enable_pin >= 0) {
