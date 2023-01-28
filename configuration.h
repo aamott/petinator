@@ -59,10 +59,10 @@
 */
 #define USES_STEPPER // if a stepper is not used, a DC motor is assumed
 #ifdef USES_STEPPER
-    #define MAX_SPEED 30000 // in steps per second
-    #define ACCELERATION 5000
-    #define DEFAULT_SPEED 30000 // default stepper speed in steps per second
-    #define SPEED_INC 100 // speed increment size in steps per second
+    #define STEPS_PER_MM 650 // how many steps the stepper takes to pull 1mm of filament
+    #define MAX_SPEED 300 // in mm/s
+    #define DEFAULT_SPEED 5 // default stepper speed in mm/s
+    #define SPEED_INC 0.5 // speed increment size in steps per second
 #else
     #define USES_PWM_MOTOR
     #define MAX_SPEED 255 // PWM max. Almost always 256. 

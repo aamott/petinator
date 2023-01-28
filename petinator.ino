@@ -16,7 +16,6 @@
 
 #include <AutoPID.h>
 #include <thermistor.h>
-#include <AccelStepper.h>
 #include "stepper.h"
 #include <ezButton.h>
 #include <EEPROM.h>
@@ -217,7 +216,7 @@ long target_speed = DEFAULT_SPEED;
 bool pullingEnabled = false;
 
 #ifdef USES_STEPPER
-AccelStepper stepper(AccelStepper::DRIVER, STEP_PIN, DIR_PIN);
+Stepper stepper(STEP_PIN, DIR_PIN, ENABLE_PIN, true, STEPS_PER_MM);
 
 /***************************
  * Run Motor if Temp Reached
@@ -226,54 +225,60 @@ AccelStepper stepper(AccelStepper::DRIVER, STEP_PIN, DIR_PIN);
  */
 void runMotorIfTempReached(bool at_temp) {
 
-  stepper.runSpeed();
+  stepper.run();
 
   if (pullingEnabled && at_temp) {
-    // Temp is reached
-    if (stepper.speed() == 0) {
-      // only tell the stepper to run if it isn't already
-      stepper.enableOutputs();
-      stepper.setSpeed(target_speed);
+    // only tell the stepper to run if it isn't already
+    if (!stepper.running()) {
+      stepper.set_speed_mms(target_speed);
     }
   } else {
     // Don't run stepper until temp is reached and enabled
-    stepper.setSpeed(0);
+    stepper.stop();
   }
 }
 
+/// @brief increase stepper speed
 void increase_speed() {
   target_speed += SPEED_INC;
   if (target_speed > MAX_SPEED) {
     target_speed = MAX_SPEED;
   }
-  if (stepper.speed() != 0) {
-    stepper.setSpeed(target_speed);
+
+  // only update the speed if stepper is running
+  if (stepper.running()) {
+    stepper.set_speed_mms(target_speed);
   }
 }
 
+/// @brief decrease stepper speed
 void decrease_speed() {
   target_speed -= SPEED_INC;
   if (target_speed < 0) {
     target_speed = 0;
   }
-  if (stepper.speed() != 0) {
-    stepper.setSpeed(target_speed);
+
+  // only update the speed if stepper is running
+  if (stepper.running()) {
+    stepper.set_speed_mms(target_speed);
   }
 }
 
+/// @brief toggle if puller is active
 void toggle_puller() {
   pullingEnabled = !pullingEnabled;
-  if (!pullingEnabled) stepper.setSpeed(0);
-  else {
-    stepper.setSpeed(target_speed);
-    stepper.enableOutputs();
+
+  if (!pullingEnabled) {
+    stepper.stop();
+  } else {
+    stepper.set_speed_mms(target_speed);
   }
 }
 
+/// @brief stop the puller
 void disable_puller() {
   pullingEnabled = false;
-  stepper.setSpeed(0);
-  stepper.disableOutputs();
+  stepper.stop();
 }
 
 
@@ -538,15 +543,7 @@ void setup() {
 /***********
  * Puller
  */
-#ifdef USES_STEPPER
-  stepper.setEnablePin(ENABLE_PIN);
-  stepper.setPinsInverted(false, false, true);
-  stepper.setMaxSpeed(MAX_SPEED);
-  stepper.disableOutputs();
-
-  stepper.setSpeed(target_speed);
-  stepper.setAcceleration(ACCELERATION);
-#else  // a DC motor is assumed
+#ifndef USES_STEPPER  // a DC motor is assumed
   pinMode(MOTOR_PWM_PIN, OUTPUT);
   pinMode(DIR_PIN, OUTPUT);
   pinMode(ENABLE_PIN, OUTPUT);
