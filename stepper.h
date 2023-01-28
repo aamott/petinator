@@ -27,9 +27,10 @@ public:
   /// @param step_pin Driver step pin.
   /// @param direction_pin Driver direction pin.
   /// @param enable_pin Driver enable pin. Less than 0 for no enable pin.
-  /// @param min_pulse_width Minimum number of microseconds a pulse width can take.
-  Stepper(int step_pin, int direction_pin, int enable_pin = -1, int min_pulse_width = 1)
-    : _step_pin(step_pin), _direction_pin(direction_pin), _enable_pin(enable_pin), _min_pulse_width(min_pulse_width) {
+  /// @param invert_enable_pin Whether to invert the enable pin. Disabled will be HIGH, Enabled will be LOW. Default false; 
+  /// @param min_pulse_width Minimum number of microseconds a pulse width can take. Default 1.
+  Stepper(int step_pin, int direction_pin, int enable_pin = -1, bool invert_enable_pin = false, int min_pulse_width = 1)
+    : _step_pin(step_pin), _direction_pin(direction_pin), _enable_pin(enable_pin), _invert_enable_pin(invert_enable_pin), _min_pulse_width(min_pulse_width) {
     pinMode(step_pin, OUTPUT);
     pinMode(direction_pin, OUTPUT);
 
