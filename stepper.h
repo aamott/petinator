@@ -4,6 +4,7 @@ private:
   const unsigned int _step_pin;
   const unsigned int _direction_pin;
   const int _enable_pin = -1;
+  bool invert_enable = false;
   const unsigned int _min_pulse_width;
 
   // step tracking
@@ -50,11 +51,19 @@ public:
 
     // set stepper direction
     digitalWrite(_direction_pin, reverse_direction);
+
+    // enable stepper
+    if (_enable_pin >= 0) {
+        // invert_enable will either be false (HIGH) or true (LOW)
+        digitalWrite(_enable_pin, !invert_enable);
+    }
   }
 
 
   /// @brief Check if a step is due. If a step is due, will take at least _min_pulse_width microseconds to run. 
   void run() {
+    // TODO: add acceleration
+
     long current_time = micros();
 
     if ( _micros_per_step != 0 && _last_step + _micros_per_step < current_time) {
@@ -68,5 +77,7 @@ public:
   /// @brief Stop motor movements
   void stop() {
     _micros_per_step = 0;
+    // invert_enable will either be false (LOW) or true (HIGH)
+    digitalWrite(_enable_pin, invert_enable);
   }
 };
