@@ -4,7 +4,7 @@ private:
   const unsigned int _step_pin;
   const unsigned int _direction_pin;
   const int _enable_pin = -1;
-  bool invert_enable = false;
+  const bool _invert_enable;
   const unsigned int _min_pulse_width;
 
   // step tracking
@@ -30,7 +30,7 @@ public:
   /// @param invert_enable_pin Whether to invert the enable pin. Disabled will be HIGH, Enabled will be LOW. Default false;
   /// @param min_pulse_width Minimum number of microseconds a pulse width can take. Default 1.
   Stepper(int step_pin, int direction_pin, int enable_pin = -1, bool invert_enable_pin = false, int min_pulse_width = 1)
-    : _step_pin(step_pin), _direction_pin(direction_pin), _enable_pin(enable_pin), _invert_enable_pin(invert_enable_pin), _min_pulse_width(min_pulse_width) {
+    : _step_pin(step_pin), _direction_pin(direction_pin), _enable_pin(enable_pin), _invert_enable(invert_enable_pin), _min_pulse_width(min_pulse_width) {
     pinMode(step_pin, OUTPUT);
     pinMode(direction_pin, OUTPUT);
 
@@ -55,8 +55,8 @@ public:
 
     // enable stepper
     if (_enable_pin >= 0) {
-      // invert_enable will either be false (HIGH) or true (LOW)
-      digitalWrite(_enable_pin, !invert_enable);
+      // _invert_enable will either be false (HIGH) or true (LOW)
+      digitalWrite(_enable_pin, !_invert_enable);
     }
   }
 
@@ -78,7 +78,7 @@ public:
   /// @brief Stop motor movements
   void stop() {
     _micros_per_step = 0;
-    // invert_enable will either be false (LOW) or true (HIGH)
-    digitalWrite(_enable_pin, invert_enable);
+    // _invert_enable will either be false (LOW) or true (HIGH)
+    digitalWrite(_enable_pin, _invert_enable);
   }
 };
