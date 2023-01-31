@@ -39,16 +39,23 @@
 * PID
 * PID settings and gains
 */
-#define PID_PERIOD 100 // how often PID should run in milliseconds
 #define OUTPUT_MIN 0
 #define OUTPUT_MAX 255
 // PID values
 // Make sure to change EEPROM_INITIALIZED_SIGN when you update these!
-#define DEFAULT_KP 1000 //1000
-#define DEFAULT_KI 0 //0
-#define DEFAULT_KD 0 // 0
+#define DEFAULT_KP 12
+#define DEFAULT_KI 0.2
+#define DEFAULT_KD 0.4
 
-#define BANG_BANG_RANGE 40 // higher or lower than BANG_BANG_RANGE will not use PID
+// A common PID problem is the initial overshoot
+// when it takes a long time to reach the target. 
+// Setting control to bang-bang can help the integral windup that 
+// causes that. 
+// Temperatures below target minus BANG_BANG_LOWER 
+// and above target plus BANG_BANG_UPPER will use bang-bang
+// instead of PID. 
+#define BANG_BANG_LOWER 20 
+#define BANG_BANG_UPPER 6 
 
 
 /******************************************
@@ -75,7 +82,7 @@
  * compile time so it overwrites saved values after
  * fresh uploads.
 */
-#define EEPROM_INITIALIZED_SIGN -10923 //binary 1010101010101011
+#define EEPROM_INITIALIZED_SIGN -10924 //binary 1010101010101100
 
 /******************************************
 * Buttons
