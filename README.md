@@ -1,4 +1,5 @@
 # PETInator
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/T6T6I11DP)
 ### Firmware for bottle-to-filament machines
 
 [Simulation with stepper motor puller](https://wokwi.com/projects/333363618182595154)

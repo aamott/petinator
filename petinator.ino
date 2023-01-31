@@ -14,7 +14,7 @@
 *
 *****************************************************/
 
-#include <AutoPID.h>
+#include <FastPID.h>
 #include <thermistor.h>
 #include <AccelStepper.h>
 #include <ezButton.h>
@@ -61,8 +61,6 @@ void updateTemperature() {
  */
 double target_temp = DEFAULT_TEMP;  // when enabled, temp_set_point will be set to this
 double temp_set_point = 0;          // the value used by autopid
-double heater_pwm = 0;              // heater's pwm will be controlled by this value
-double last_pwm = 0;                // keeps track of the last value for less frequent updating
 bool heatingEnabled = false;
 bool error_thrown = false;
 // thermal runaway
@@ -78,7 +76,7 @@ unsigned long last_PID_time = 0;  // last time PID was run
 float KP = DEFAULT_KP, KI = DEFAULT_KI, KD = DEFAULT_KD;
 
 // input/output variables passed by reference, so they are updated automatically
-AutoPID heaterPID(&current_temp, &temp_set_point, &heater_pwm, OUTPUT_MIN, OUTPUT_MAX, KP, KI, KD);
+FastPID heaterPID(KP, KI, KD, THERMAL_PROTECTION_PERIOD / CHECKS_PER_PERIOD, 8, false);
 
 void increase_temp() {
   if (target_temp + TEMP_VARIANCE < MAX_TEMP) {
@@ -120,54 +118,49 @@ void reset_recorded_temps() {
   }
 }
 
+/// @brief Runs thermal safety checks
 void check_thermal_safety() {
-  // Thermal runaway checks
-  if (millis() - last_thermal_check_time > TEMP_CHECK_MS &&  // time to check again
-      (current_temp < target_temp - TEMP_VARIANCE ||         // heating
-       current_temp > target_temp + TEMP_VARIANCE)) {        // cooling
-    last_thermal_check_time = millis();
 
-    // switch between heating and cooling thermal fault detection
-    if (current_temp < target_temp - TEMP_VARIANCE && cooling) {  // if below temp but not heating
-      // set to heating mode
+  // switch between heating and cooling thermal fault detection
+  if (current_temp < target_temp - TEMP_VARIANCE && cooling) {  // if below temp but not heating
+    // set to heating mode
+    cooling = false;
+    // reset the temps array
+    reset_recorded_temps();
+  } else if (current_temp > target_temp + TEMP_VARIANCE && !cooling) {  // if above temp but not cooling
+    // set to cooling mode
+    cooling = true;
+    // reset the temps array
+    reset_recorded_temps();
+  }
+
+  // Move forward in the temps array
+  current_index = next_index;
+  next_index += 1;
+  // check for wrapping
+  if (next_index >= CHECKS_PER_PERIOD) {
+    next_index = 0;
+  }
+
+  // Write current temp
+  recorded_temps[current_index] = current_temp;
+  int first_temp = recorded_temps[next_index];
+
+  // Check for thermal runaway
+  if (first_temp != -1) {              // -1 is uninitialized
+    if (target_temp > current_temp) {  // heating up
       cooling = false;
-      // reset the temps array
-      reset_recorded_temps();
-    } else if (current_temp > target_temp + TEMP_VARIANCE && !cooling) {  // if above temp but not cooling
-      // set to cooling mode
-      cooling = true;
-      // reset the temps array
-      reset_recorded_temps();
-    }
-
-    // Move forward in the temps array
-    current_index = next_index;
-    next_index += 1;
-    // check for wrapping
-    if (next_index >= CHECKS_PER_PERIOD) {
-      next_index = 0;
-    }
-
-    // Write current temp
-    recorded_temps[current_index] = current_temp;
-    int first_temp = recorded_temps[next_index];
-
-    // Check for thermal runaway
-    if (first_temp != -1) {              // -1 is uninitialized
-      if (target_temp > current_temp) {  // heating up
-        cooling = false;
-        if (!cooling && current_temp - first_temp < THERMAL_PROTECTION_HYSTERESIS) {
-          disable_heater();
-          throw_error("Thermal Runaway!");
-          error_thrown = true;
-        }
-      } else if (cooling && first_temp - current_temp < THERMAL_PROTECTION_HYSTERESIS) {
-        // target_temp < current_temp -- cooling down
-        cooling = true;
+      if (!cooling && current_temp - first_temp < THERMAL_PROTECTION_HYSTERESIS) {
         disable_heater();
-        throw_error("Cooling Failed!");
+        throw_error("Thermal Runaway!");
         error_thrown = true;
       }
+    } else if (cooling && first_temp - current_temp < THERMAL_PROTECTION_HYSTERESIS) {
+      // target_temp < current_temp -- cooling down
+      cooling = true;
+      disable_heater();
+      throw_error("Cooling Failed!");
+      error_thrown = true;
     }
   }
 
@@ -179,6 +172,7 @@ void check_thermal_safety() {
   }
 }
 
+
 /// @brief Runs the heater. Returns true if the heater up to temp.
 bool heater_loop() {
   // only throw an error once (until a reset)
@@ -189,21 +183,30 @@ bool heater_loop() {
   updateTemperature();
 
   if (heatingEnabled) {
-    // Update PID
-    if (millis() - last_PID_time > PID_PERIOD) {
-      heaterPID.run();
+
+    if (millis() - last_thermal_check_time > TEMP_CHECK_MS &&  // time to check again
+        (current_temp < target_temp - TEMP_VARIANCE ||         // heating
+         current_temp > target_temp + TEMP_VARIANCE)) {        // cooling
+      last_thermal_check_time = millis();
+
+      // update PID
+      if (temp_set_point - BANG_BANG_LOWER > current_temp) { // bang-bang for low temps
+        analogWrite(HEATER_PIN, 255);
+        heaterPID.clear(); // reset PID
+      } else if (temp_set_point + BANG_BANG_UPPER < current_temp) { // bang-bang for high temps
+        analogWrite(HEATER_PIN, 0);
+        heaterPID.clear(); // reset PID
+      } else { // PID
+        analogWrite(HEATER_PIN, heaterPID.step(temp_set_point, current_temp));
+      }
+      // Thermal Protection Checks
+      check_thermal_safety();
     }
-    if (int(heater_pwm) != int(last_pwm)) {
-      last_pwm = heater_pwm;
-      analogWrite(HEATER_PIN, int(heater_pwm));
-    }
-    // light up LED when we're at setpoint +-1 degree
-    digitalWrite(LED_BUILTIN, heaterPID.atSetPoint(1));
 
     // Thermal Protection Checks
     check_thermal_safety();
 
-    return current_temp > target_temp - TEMP_VARIANCE;  // heated
+    return current_temp > target_temp - TEMP_VARIANCE; // heated
   }
 
   return false;
@@ -521,15 +524,11 @@ void setup() {
   } else {
     InitializeEeprom();
   }
-  heaterPID.setGains(KP, KI, KD);
 
   /***********
      * Temp
      */
   // if temperature is more than 4 degrees below or above setpoint, OUTPUT will be set to min or max respectively
-  heaterPID.setBangBang(BANG_BANG_RANGE);
-  // set PID update interval
-  heaterPID.setTimeStep(TEMP_READ_DELAY);
   // initialize the temp array
   reset_recorded_temps();
 
