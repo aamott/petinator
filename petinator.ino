@@ -118,10 +118,11 @@ void reset_recorded_temps() {
   }
 }
 
-/// @brief Runs thermal safety checks
+/// @brief Runs thermal safety checks.
+/// NOTE: should be run ONCE per PID period.
 void check_thermal_safety() {
 
-  // switch between heating and cooling thermal fault detection
+  // Switch between heating and cooling thermal fault detection
   if (current_temp < target_temp - TEMP_VARIANCE && cooling) {  // if below temp but not heating
     // set to heating mode
     cooling = false;
@@ -147,17 +148,13 @@ void check_thermal_safety() {
   int first_temp = recorded_temps[next_index];
 
   // Check for thermal runaway
-  if (first_temp != -1) {              // -1 is uninitialized
-    if (target_temp > current_temp) {  // heating up
-      cooling = false;
-      if (!cooling && current_temp - first_temp < THERMAL_PROTECTION_HYSTERESIS) {
-        disable_heater();
-        throw_error("Thermal Runaway!");
-        error_thrown = true;
-      }
+  if (first_temp != -1) {  // -1 is uninitialized
+    if (!cooling && current_temp - first_temp < THERMAL_PROTECTION_HYSTERESIS) {
+      disable_heater();
+      throw_error("Thermal Runaway!");
+      error_thrown = true;
     } else if (cooling && first_temp - current_temp < THERMAL_PROTECTION_HYSTERESIS) {
       // target_temp < current_temp -- cooling down
-      cooling = true;
       disable_heater();
       throw_error("Cooling Failed!");
       error_thrown = true;
@@ -203,10 +200,7 @@ bool heater_loop() {
       check_thermal_safety();
     }
 
-    // Thermal Protection Checks
-    check_thermal_safety();
-
-    return current_temp > target_temp - TEMP_VARIANCE; // heated
+    return current_temp > target_temp - TEMP_VARIANCE;  // heated
   }
 
   return false;
