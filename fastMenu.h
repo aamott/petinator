@@ -113,7 +113,7 @@ public:
 /********************************************
  * -------------- FastLine -----------------*
 ********************************************/
-template<typename T = int>
+template<typename T>
 class FastLine : public FastLineGeneric {
 private:
   const char *_line;  // line to display
@@ -362,13 +362,13 @@ public:
     set_screen(_current_screen_idx + 1);
   }
 
-  // @brief switch to the previous screen
+  /// @brief switch to the previous screen
   void previous_screen() {
     set_screen(_current_screen_idx - 1);
   }
 
   void set_screen(int screen_idx) {
-    if (screen_idx < _num_screens) {
+    if (screen_idx < _num_screens && screen_idx >= 0) {
       _current_screen_idx = screen_idx;
     }
   }

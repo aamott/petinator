@@ -483,12 +483,12 @@ FastMenu menu(lcd, COLUMNS, ROWS);
 * Displays an error message and stops pulling and heating
 */
 void throw_error(const char *message) {
-  FastLine<> error_line(0, 0, message);
+  FastLine<int> error_line(0, 0, message);
   error_screen.add_line(error_line);
   menu.add_screen(error_screen);
 
   // switch to the newly created error screen
-  menu.set_screen(1);
+  menu.next_screen();
 
   // stop pulling and heating
   disable_heater();
