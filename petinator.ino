@@ -483,8 +483,9 @@ FastMenu menu(lcd, COLUMNS, ROWS);
 * Displays an error message and stops pulling and heating
 */
 void throw_error(const char *message) {
-  FastLine<int> error_line(0, 0, message);
-  error_screen.add_line(error_line);
+  FastLine<int> *error_line_ptr = new FastLine<int>(0, 0, message);
+  error_screen.add_line(error_line_ptr);
+
   menu.add_screen(error_screen);
 
   // switch to the newly created error screen
@@ -557,13 +558,13 @@ void setup() {
   // set_temp_line.set_decimalPlaces(0);
   // actual_temp_line.set_decimalPlaces(0);
 
-  main_screen.add_line(enable_heater_line);
-  main_screen.add_line(enable_puller_line);
-  main_screen.add_line(set_temp_line);
-  main_screen.add_line(set_speed_line);
-  main_screen.add_line(save_parameters_line);
-  main_screen.add_line(actual_temp_line);
-  main_screen.add_line(actual_speed_line);
+  main_screen.add_line(&enable_heater_line);
+  main_screen.add_line(&enable_puller_line);
+  main_screen.add_line(&set_temp_line);
+  main_screen.add_line(&set_speed_line);
+  main_screen.add_line(&save_parameters_line);
+  main_screen.add_line(&actual_temp_line);
+  main_screen.add_line(&actual_speed_line);
   menu.add_screen(main_screen);
 }
 

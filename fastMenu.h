@@ -178,14 +178,14 @@ public:
   /// @brief add a line to the screen
   /// @param line - a line object to add
   /// @return true if the line was successfully added
-  bool add_line(FastLineGeneric &line) {
+  bool add_line(FastLineGeneric *line) {
     // check that there are not too many lines
     if (_num_lines >= MAX_LINES) {
       return false;
     }
 
     // add the line
-    lines[_num_lines++] = &line;
+    lines[_num_lines++] = line;
     return true;
   }
 
