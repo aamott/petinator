@@ -6,7 +6,7 @@ private:
   const int _enable_pin = -1;
   const bool _invert_enable;
   const unsigned int _min_pulse_width;
-  const unsigned int _steps_per_mm;
+  const unsigned int _steps_per_mm = 0;
 
   // step tracking
   unsigned long _micros_per_step = 0;
