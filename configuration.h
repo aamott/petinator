@@ -78,8 +78,8 @@
     // If your chipset is supported, you should enable this. You can check
     // at the repo:
     // https://github.com/gin66/FastAccelStepper
-    // NOTE: mm/s speed hasn't been added yet
-    #define USE_FASTACCELSTEPPER_LIBRARY // uncomment to enable
+    // NOTE: mm/s speed hasn't been implemented yet. It treats it as steps per second at the moment.
+    // #define USE_FASTACCELSTEPPER_LIBRARY // uncomment to enable
 
     #ifdef USE_FASTACCELSTEPPER_LIBRARY
       #define ACCELERATION 5000
