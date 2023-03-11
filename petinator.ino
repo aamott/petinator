@@ -13,11 +13,13 @@
 * - https://github.com/aamott/petinator
 *
 *****************************************************/
+#include "configuration.h"
 
 #include <FastPID.h>
 #include <thermistor.h>
 #ifdef USE_FASTACCELSTEPPER_LIBRARY
   #include <FastAccelStepper.h>
+  // #include "AVRStepperPins.h" // Only required for AVR controllers
 #else
   #include "stepper.h"
 #endif
@@ -33,8 +35,6 @@
 #else
 #include <hd44780ioClass/hd44780_pinIO.h>  // Arduino pin i/o class header
 #endif
-
-#include "configuration.h"
 
 /****************************************
  * Thermistor
