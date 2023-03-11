@@ -311,6 +311,11 @@ void toggle_puller() {
     pullingEnabled = true;
   }
 }
+
+void disable_puller() {
+  pullingEnabled = false;
+}
+
 // END USES_PWM_MOTOR
 #endif
 
