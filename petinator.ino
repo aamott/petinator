@@ -13,10 +13,16 @@
 * - https://github.com/aamott/petinator
 *
 *****************************************************/
+#include "configuration.h"
 
 #include <FastPID.h>
 #include <thermistor.h>
-#include <AccelStepper.h>
+#ifdef USE_FASTACCELSTEPPER_LIBRARY
+  #include <FastAccelStepper.h>
+  // #include "AVRStepperPins.h" // Only required for AVR controllers
+#else
+  #include "stepper.h"
+#endif
 #include <ezButton.h>
 #include <EEPROM.h>
 #include "fastMenu.cpp"
@@ -29,8 +35,6 @@
 #else
 #include <hd44780ioClass/hd44780_pinIO.h>  // Arduino pin i/o class header
 #endif
-
-#include "configuration.h"
 
 /****************************************
  * Thermistor
@@ -213,7 +217,52 @@ long target_speed = DEFAULT_SPEED;
 bool pullingEnabled = false;
 
 #ifdef USES_STEPPER
-AccelStepper stepper(AccelStepper::DRIVER, STEP_PIN, DIR_PIN);
+
+  #ifdef USE_FASTACCELSTEPPER_LIBRARY
+    FastAccelStepperEngine stepper_engine = FastAccelStepperEngine();
+    FastAccelStepper *stepper = NULL;
+  #else // else USE_FASTACCELSTEPPER_LIBRARY
+    Stepper stepper(STEP_PIN, DIR_PIN, ENABLE_PIN, true, STEPS_PER_MM);
+  #endif // end USE_FASTACCELSTEPPER_LIBRARY
+
+
+/// @brief Disables puller movement and stops the puller motor
+void disable_puller() {
+  pullingEnabled = false;
+  #ifdef USE_FASTACCELSTEPPER_LIBRARY
+    stepper->stopMove();
+  #else
+    stepper.stop();
+  #endif // end USE_FASTACCELSTEPPER_LIBRARY
+}
+
+
+/// @brief Set stepper motor speed
+/// @param new_speed - Speed to set stepper to.
+/// @param start_if_stopped - start the motor if currently stopped. Default true.
+void set_speed(long new_speed, bool start_if_stopped = true) {
+  // Set target_speed within min and max
+  if (new_speed > MAX_SPEED) {
+    target_speed = MAX_SPEED;
+  } else if (new_speed < 0) {
+    target_speed = 0;
+  } else {
+    target_speed = new_speed;
+  }
+
+  // start motor movement at target_speed
+  #ifdef USE_FASTACCELSTEPPER_LIBRARY
+    if (start_if_stopped || stepper->isRunning()) {
+      stepper->setSpeedInHz(target_speed);
+      stepper->runForward();
+    }
+  #else
+    if (start_if_stopped || stepper.running()) {
+      stepper.set_speed_mms(target_speed);
+    }
+  #endif // end USE_FASTACCELSTEPPER_LIBRARY
+}
+
 
 /***************************
  * Run Motor if Temp Reached
@@ -222,55 +271,59 @@ AccelStepper stepper(AccelStepper::DRIVER, STEP_PIN, DIR_PIN);
  */
 void runMotorIfTempReached(bool at_temp) {
 
-  stepper.runSpeed();
+  #ifndef USE_FASTACCELSTEPPER_LIBRARY
+    stepper.run();
+  #endif
 
   if (pullingEnabled && at_temp) {
-    // Temp is reached
-    if (stepper.speed() == 0) {
-      // only tell the stepper to run if it isn't already
-      stepper.enableOutputs();
-      stepper.setSpeed(target_speed);
-    }
+    // only tell the stepper to run if it isn't already
+    set_speed(target_speed, false);
   } else {
     // Don't run stepper until temp is reached and enabled
-    stepper.setSpeed(0);
+    #ifdef USE_FASTACCELSTEPPER_LIBRARY
+      stepper->stopMove();
+    #else
+      stepper.stop();
+    #endif // end USE_FASTACCELSTEPPER_LIBRARY
   }
 }
 
+
+/// @brief increase stepper speed
 void increase_speed() {
   target_speed += SPEED_INC;
   if (target_speed > MAX_SPEED) {
     target_speed = MAX_SPEED;
   }
-  if (stepper.speed() != 0) {
-    stepper.setSpeed(target_speed);
-  }
+
+  // only update the speed if stepper is running
+  set_speed(target_speed, false);
 }
 
+
+/// @brief decrease stepper speed
 void decrease_speed() {
   target_speed -= SPEED_INC;
   if (target_speed < 0) {
     target_speed = 0;
   }
-  if (stepper.speed() != 0) {
-    stepper.setSpeed(target_speed);
-  }
+
+  // only update the speed if stepper is running
+  set_speed(target_speed, false);
 }
 
+
+/// @brief toggle if puller is active
 void toggle_puller() {
   pullingEnabled = !pullingEnabled;
-  if (!pullingEnabled) stepper.setSpeed(0);
-  else {
-    stepper.setSpeed(target_speed);
-    stepper.enableOutputs();
+
+  if (!pullingEnabled) {
+    disable_puller();
+  } else {
+    set_speed(target_speed);
   }
 }
 
-void disable_puller() {
-  pullingEnabled = false;
-  stepper.setSpeed(0);
-  stepper.disableOutputs();
-}
 
 
 #else  // end USES_STEPPER, start USES_PWM_MOTOR
@@ -532,14 +585,18 @@ void setup() {
  * Puller
  */
 #ifdef USES_STEPPER
-  stepper.setEnablePin(ENABLE_PIN);
-  stepper.setPinsInverted(false, false, true);
-  stepper.setMaxSpeed(MAX_SPEED);
-  stepper.disableOutputs();
+  #ifdef USE_FASTACCELSTEPPER_LIBRARY
+    stepper_engine.init();
+    stepper = stepper_engine.stepperConnectToPin(STEP_PIN);
 
-  stepper.setSpeed(target_speed);
-  stepper.setAcceleration(ACCELERATION);
-#else  // a DC motor is assumed
+    stepper->setDirectionPin(DIR_PIN);
+    stepper->setEnablePin(ENABLE_PIN);
+    stepper->setAutoEnable(true);
+
+    stepper->setSpeedInHz(target_speed);
+    stepper->setAcceleration(ACCELERATION);
+  #endif
+#else // DC Motor
   pinMode(MOTOR_PWM_PIN, OUTPUT);
   pinMode(DIR_PIN, OUTPUT);
   pinMode(ENABLE_PIN, OUTPUT);
