@@ -114,6 +114,7 @@ public:
 
 
   /// @brief Stop motor movements
+  /// Sets the speed to 0 and stops movement
   void stop() {
     _micros_per_step = 0;
     // _invert_enable will either be false (LOW) or true (HIGH)
