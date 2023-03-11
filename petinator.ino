@@ -118,10 +118,11 @@ void reset_recorded_temps() {
   }
 }
 
-/// @brief Runs thermal safety checks
+/// @brief Runs thermal safety checks.
+/// NOTE: should be run ONCE per PID period.
 void check_thermal_safety() {
 
-  // switch between heating and cooling thermal fault detection
+  // Switch between heating and cooling thermal fault detection
   if (current_temp < target_temp - TEMP_VARIANCE && cooling) {  // if below temp but not heating
     // set to heating mode
     cooling = false;
@@ -147,17 +148,13 @@ void check_thermal_safety() {
   int first_temp = recorded_temps[next_index];
 
   // Check for thermal runaway
-  if (first_temp != -1) {              // -1 is uninitialized
-    if (target_temp > current_temp) {  // heating up
-      cooling = false;
-      if (!cooling && current_temp - first_temp < THERMAL_PROTECTION_HYSTERESIS) {
-        disable_heater();
-        throw_error("Thermal Runaway!");
-        error_thrown = true;
-      }
+  if (first_temp != -1) {  // -1 is uninitialized
+    if (!cooling && current_temp - first_temp < THERMAL_PROTECTION_HYSTERESIS) {
+      disable_heater();
+      throw_error("Thermal Runaway!");
+      error_thrown = true;
     } else if (cooling && first_temp - current_temp < THERMAL_PROTECTION_HYSTERESIS) {
       // target_temp < current_temp -- cooling down
-      cooling = true;
       disable_heater();
       throw_error("Cooling Failed!");
       error_thrown = true;
@@ -203,10 +200,7 @@ bool heater_loop() {
       check_thermal_safety();
     }
 
-    // Thermal Protection Checks
-    check_thermal_safety();
-
-    return current_temp > target_temp - TEMP_VARIANCE; // heated
+    return current_temp > target_temp - TEMP_VARIANCE;  // heated
   }
 
   return false;
@@ -495,12 +489,13 @@ FastMenu menu(lcd, COLUMNS, ROWS);
 * Displays an error message and stops pulling and heating
 */
 void throw_error(const char *message) {
-  FastLine<> error_line(0, 0, message);
-  error_screen.add_line(error_line);
+  FastLine<int> *error_line_ptr = new FastLine<int>(0, 0, message);
+  error_screen.add_line(error_line_ptr);
+
   menu.add_screen(error_screen);
 
   // switch to the newly created error screen
-  menu.set_screen(1);
+  menu.next_screen();
 
   // stop pulling and heating
   disable_heater();
@@ -561,13 +556,13 @@ void setup() {
   // set_temp_line.set_decimalPlaces(0);
   // actual_temp_line.set_decimalPlaces(0);
 
-  main_screen.add_line(enable_heater_line);
-  main_screen.add_line(enable_puller_line);
-  main_screen.add_line(set_temp_line);
-  main_screen.add_line(set_speed_line);
-  main_screen.add_line(save_parameters_line);
-  main_screen.add_line(actual_temp_line);
-  main_screen.add_line(actual_speed_line);
+  main_screen.add_line(&enable_heater_line);
+  main_screen.add_line(&enable_puller_line);
+  main_screen.add_line(&set_temp_line);
+  main_screen.add_line(&set_speed_line);
+  main_screen.add_line(&save_parameters_line);
+  main_screen.add_line(&actual_temp_line);
+  main_screen.add_line(&actual_speed_line);
   menu.add_screen(main_screen);
 }
 

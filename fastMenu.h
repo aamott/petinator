@@ -113,7 +113,7 @@ public:
 /********************************************
  * -------------- FastLine -----------------*
 ********************************************/
-template<typename T = int>
+template<typename T>
 class FastLine : public FastLineGeneric {
 private:
   const char *_line;  // line to display
@@ -178,14 +178,14 @@ public:
   /// @brief add a line to the screen
   /// @param line - a line object to add
   /// @return true if the line was successfully added
-  bool add_line(FastLineGeneric &line) {
+  bool add_line(FastLineGeneric *line) {
     // check that there are not too many lines
     if (_num_lines >= MAX_LINES) {
       return false;
     }
 
     // add the line
-    lines[_num_lines++] = &line;
+    lines[_num_lines++] = line;
     return true;
   }
 
@@ -362,13 +362,13 @@ public:
     set_screen(_current_screen_idx + 1);
   }
 
-  // @brief switch to the previous screen
+  /// @brief switch to the previous screen
   void previous_screen() {
     set_screen(_current_screen_idx - 1);
   }
 
   void set_screen(int screen_idx) {
-    if (screen_idx < _num_screens) {
+    if (screen_idx < _num_screens && screen_idx >= 0) {
       _current_screen_idx = screen_idx;
     }
   }
