@@ -16,7 +16,11 @@
 
 #include <FastPID.h>
 #include <thermistor.h>
-#include "stepper.h"
+#ifdef USE_FASTACCELSTEPPER_LIBRARY
+  #include <FastAccelStepper.h>
+#else
+  #include "stepper.h"
+#endif
 #include <ezButton.h>
 #include <EEPROM.h>
 #include "fastMenu.cpp"
@@ -213,7 +217,52 @@ long target_speed = DEFAULT_SPEED;
 bool pullingEnabled = false;
 
 #ifdef USES_STEPPER
-Stepper stepper(STEP_PIN, DIR_PIN, ENABLE_PIN, true, STEPS_PER_MM);
+
+  #ifdef USE_FASTACCELSTEPPER_LIBRARY
+    FastAccelStepperEngine stepper_engine = FastAccelStepperEngine();
+    FastAccelStepper *stepper = NULL;
+  #else // else USE_FASTACCELSTEPPER_LIBRARY
+    Stepper stepper(STEP_PIN, DIR_PIN, ENABLE_PIN, true, STEPS_PER_MM);
+  #endif // end USE_FASTACCELSTEPPER_LIBRARY
+
+
+/// @brief Disables puller movement and stops the puller motor
+void disable_puller() {
+  pullingEnabled = false;
+  #ifdef USE_FASTACCELSTEPPER_LIBRARY
+    stepper->stopMove();
+  #else
+    stepper.stop();
+  #endif // end USE_FASTACCELSTEPPER_LIBRARY
+}
+
+
+/// @brief Set stepper motor speed
+/// @param new_speed - Speed to set stepper to.
+/// @param start_if_stopped - start the motor if currently stopped. Default true.
+void set_speed(long new_speed, bool start_if_stopped = true) {
+  // Set target_speed within min and max
+  if (new_speed > MAX_SPEED) {
+    target_speed = MAX_SPEED;
+  } else if (new_speed < 0) {
+    target_speed = 0;
+  } else {
+    target_speed = new_speed;
+  }
+
+  // start motor movement at target_speed
+  #ifdef USE_FASTACCELSTEPPER_LIBRARY
+    if (start_if_stopped || stepper->isRunning()) {
+      stepper->setSpeedInHz(target_speed);
+      stepper->runForward();
+    }
+  #else
+    if (start_if_stopped || stepper.running()) {
+      stepper.set_speed_mms(target_speed);
+    }
+  #endif // end USE_FASTACCELSTEPPER_LIBRARY
+}
+
 
 /***************************
  * Run Motor if Temp Reached
@@ -222,18 +271,23 @@ Stepper stepper(STEP_PIN, DIR_PIN, ENABLE_PIN, true, STEPS_PER_MM);
  */
 void runMotorIfTempReached(bool at_temp) {
 
-  stepper.run();
+  #ifndef USE_FASTACCELSTEPPER_LIBRARY
+    stepper.run();
+  #endif
 
   if (pullingEnabled && at_temp) {
     // only tell the stepper to run if it isn't already
-    if (!stepper.running()) {
-      stepper.set_speed_mms(target_speed);
-    }
+    set_speed(target_speed, false);
   } else {
     // Don't run stepper until temp is reached and enabled
-    stepper.stop();
+    #ifdef USE_FASTACCELSTEPPER_LIBRARY
+      stepper->stopMove();
+    #else
+      stepper.stop();
+    #endif // end USE_FASTACCELSTEPPER_LIBRARY
   }
 }
+
 
 /// @brief increase stepper speed
 void increase_speed() {
@@ -243,10 +297,9 @@ void increase_speed() {
   }
 
   // only update the speed if stepper is running
-  if (stepper.running()) {
-    stepper.set_speed_mms(target_speed);
-  }
+  set_speed(target_speed, false);
 }
+
 
 /// @brief decrease stepper speed
 void decrease_speed() {
@@ -256,27 +309,21 @@ void decrease_speed() {
   }
 
   // only update the speed if stepper is running
-  if (stepper.running()) {
-    stepper.set_speed_mms(target_speed);
-  }
+  set_speed(target_speed, false);
 }
+
 
 /// @brief toggle if puller is active
 void toggle_puller() {
   pullingEnabled = !pullingEnabled;
 
   if (!pullingEnabled) {
-    stepper.stop();
+    disable_puller();
   } else {
-    stepper.set_speed_mms(target_speed);
+    set_speed(target_speed);
   }
 }
 
-/// @brief stop the puller
-void disable_puller() {
-  pullingEnabled = false;
-  stepper.stop();
-}
 
 
 #else  // end USES_STEPPER, start USES_PWM_MOTOR
@@ -537,7 +584,19 @@ void setup() {
 /***********
  * Puller
  */
-#ifndef USES_STEPPER  // a DC motor is assumed
+#ifdef USES_STEPPER
+  #ifdef USE_FASTACCELSTEPPER_LIBRARY
+    stepper_engine.init();
+    stepper = stepper_engine.stepperConnectToPin(STEP_PIN);
+
+    stepper->setDirectionPin(DIR_PIN);
+    stepper->setEnablePin(ENABLE_PIN);
+    stepper->setAutoEnable(true);
+
+    stepper->setSpeedInHz(target_speed);
+    stepper->setAcceleration(ACCELERATION);
+  #endif
+#else // DC Motor
   pinMode(MOTOR_PWM_PIN, OUTPUT);
   pinMode(DIR_PIN, OUTPUT);
   pinMode(ENABLE_PIN, OUTPUT);

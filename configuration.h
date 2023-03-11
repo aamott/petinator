@@ -70,6 +70,21 @@
     #define MAX_SPEED 300 // in mm/s
     #define DEFAULT_SPEED 5 // default stepper speed in mm/s
     #define SPEED_INC 0.5 // speed increment size in steps per second
+
+    /* FastAccelStepper Library*/
+    // Some boards are supported by the FastAccelStepper library,
+    // which runs the stepper in an interrupt and has a far higher
+    // max speed. 
+    // If your chipset is supported, you should enable this. You can check
+    // at the repo:
+    // https://github.com/gin66/FastAccelStepper
+    // NOTE: mm/s speed hasn't been added yet
+    #define USE_FASTACCELSTEPPER_LIBRARY // uncomment to enable
+
+    #ifdef USE_FASTACCELSTEPPER_LIBRARY
+      #define ACCELERATION 5000
+    #endif
+    
 #else
     #define USES_PWM_MOTOR
     #define MAX_SPEED 255 // PWM max. Almost always 256. 
