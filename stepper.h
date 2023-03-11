@@ -70,6 +70,7 @@ public:
   /// @brief Sets motor speed in millimeters per second. Will not move the motor if steps per mm is not set.
   void set_speed_mms(float millimeters_per_second) {
     if (millimeters_per_second == 0) {
+      stop();
       return;
     }
 
