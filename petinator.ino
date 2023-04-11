@@ -13,16 +13,28 @@
 * - https://github.com/aamott/petinator
 *
 *****************************************************/
+#include "configuration.h"
 
 #include <FastPID.h>
 #include <thermistor.h>
-#include <LiquidMenu.h>
-#include <LiquidCrystal.h>
-#include <FastAccelStepper.h>
+#ifdef USE_FASTACCELSTEPPER_LIBRARY
+  #include <FastAccelStepper.h>
+  // #include "AVRStepperPins.h" // Only required for AVR controllers
+#else
+  #include "stepper.h"
+#endif
 #include <ezButton.h>
 #include <EEPROM.h>
+#include "fastMenu.cpp"
+// display libraries
+#include <Wire.h>
+#include <hd44780.h>
 
-#include "configuration.h"
+#ifdef I2C_LCD
+#include <hd44780ioClass/hd44780_I2Cexp.h>  // i2c expander i/o class header
+#else
+#include <hd44780ioClass/hd44780_pinIO.h>  // Arduino pin i/o class header
+#endif
 
 /****************************************
  * Thermistor
@@ -40,7 +52,7 @@ double current_temp = 0;       // celsius
 double last_temp = 0;          // celsius
 thermistor temp_sensor(THERMISTOR_PIN, THERMISTOR_TYPE);
 
-bool updateTemperature() {
+void updateTemperature() {
   if ((millis() - lastTempUpdate) > TEMP_READ_DELAY) {
     current_temp = temp_sensor.analog2temp();  // get temp reading
     lastTempUpdate = millis();
@@ -110,10 +122,11 @@ void reset_recorded_temps() {
   }
 }
 
-/// @brief Runs thermal safety checks
+/// @brief Runs thermal safety checks.
+/// NOTE: should be run ONCE per PID period.
 void check_thermal_safety() {
 
-  // switch between heating and cooling thermal fault detection
+  // Switch between heating and cooling thermal fault detection
   if (current_temp < target_temp - TEMP_VARIANCE && cooling) {  // if below temp but not heating
     // set to heating mode
     cooling = false;
@@ -139,17 +152,13 @@ void check_thermal_safety() {
   int first_temp = recorded_temps[next_index];
 
   // Check for thermal runaway
-  if (first_temp != -1) {              // -1 is uninitialized
-    if (target_temp > current_temp) {  // heating up
-      cooling = false;
-      if (!cooling && current_temp - first_temp < THERMAL_PROTECTION_HYSTERESIS) {
-        disable_heater();
-        throw_error("Thermal Runaway!");
-        error_thrown = true;
-      }
+  if (first_temp != -1) {  // -1 is uninitialized
+    if (!cooling && current_temp - first_temp < THERMAL_PROTECTION_HYSTERESIS) {
+      disable_heater();
+      throw_error("Thermal Runaway!");
+      error_thrown = true;
     } else if (cooling && first_temp - current_temp < THERMAL_PROTECTION_HYSTERESIS) {
       // target_temp < current_temp -- cooling down
-      cooling = true;
       disable_heater();
       throw_error("Cooling Failed!");
       error_thrown = true;
@@ -208,8 +217,52 @@ long target_speed = DEFAULT_SPEED;
 bool pullingEnabled = false;
 
 #ifdef USES_STEPPER
-FastAccelStepperEngine engine = FastAccelStepperEngine();
-FastAccelStepper *stepper = NULL;
+
+  #ifdef USE_FASTACCELSTEPPER_LIBRARY
+    FastAccelStepperEngine stepper_engine = FastAccelStepperEngine();
+    FastAccelStepper *stepper = NULL;
+  #else // else USE_FASTACCELSTEPPER_LIBRARY
+    Stepper stepper(STEP_PIN, DIR_PIN, ENABLE_PIN, true, STEPS_PER_MM);
+  #endif // end USE_FASTACCELSTEPPER_LIBRARY
+
+
+/// @brief Disables puller movement and stops the puller motor
+void disable_puller() {
+  pullingEnabled = false;
+  #ifdef USE_FASTACCELSTEPPER_LIBRARY
+    stepper->stopMove();
+  #else
+    stepper.stop();
+  #endif // end USE_FASTACCELSTEPPER_LIBRARY
+}
+
+
+/// @brief Set stepper motor speed
+/// @param new_speed - Speed to set stepper to.
+/// @param start_if_stopped - start the motor if currently stopped. Default true.
+void set_speed(long new_speed, bool start_if_stopped = true) {
+  // Set target_speed within min and max
+  if (new_speed > MAX_SPEED) {
+    target_speed = MAX_SPEED;
+  } else if (new_speed < 0) {
+    target_speed = 0;
+  } else {
+    target_speed = new_speed;
+  }
+
+  // start motor movement at target_speed
+  #ifdef USE_FASTACCELSTEPPER_LIBRARY
+    if (start_if_stopped || stepper->isRunning()) {
+      stepper->setSpeedInHz(target_speed);
+      stepper->runForward();
+    }
+  #else
+    if (start_if_stopped || stepper.running()) {
+      stepper.set_speed_mms(target_speed);
+    }
+  #endif // end USE_FASTACCELSTEPPER_LIBRARY
+}
+
 
 /***************************
  * Run Motor if Temp Reached
@@ -217,50 +270,61 @@ FastAccelStepper *stepper = NULL;
  * or be shut off.
  */
 void runMotorIfTempReached(bool at_temp) {
+
+  #ifndef USE_FASTACCELSTEPPER_LIBRARY
+    stepper.run();
+  #endif
+
   if (pullingEnabled && at_temp) {
-    // Temp is reached
-    if (!stepper->isRunning()) {
-      // only tell the stepper to run if it isn't already
-      stepper->runForward();
-    }
-  } else if (stepper->isRunning()) {
-    // Don't run stepper until temp is reached
-    stepper->stopMove();
+    // only tell the stepper to run if it isn't already
+    set_speed(target_speed, false);
+  } else {
+    // Don't run stepper until temp is reached and enabled
+    #ifdef USE_FASTACCELSTEPPER_LIBRARY
+      stepper->stopMove();
+    #else
+      stepper.stop();
+    #endif // end USE_FASTACCELSTEPPER_LIBRARY
   }
 }
 
+
+/// @brief increase stepper speed
 void increase_speed() {
   target_speed += SPEED_INC;
   if (target_speed > MAX_SPEED) {
     target_speed = MAX_SPEED;
   }
-  if (stepper->isRunning()) {
-    stepper->setSpeedInHz(target_speed);
-    stepper->runForward();
-  }
+
+  // only update the speed if stepper is running
+  set_speed(target_speed, false);
 }
 
+
+/// @brief decrease stepper speed
 void decrease_speed() {
   target_speed -= SPEED_INC;
   if (target_speed < 0) {
     target_speed = 0;
   }
-  if (stepper->isRunning()) {
-    stepper->setSpeedInHz(target_speed);
-    stepper->runForward();
+
+  // only update the speed if stepper is running
+  set_speed(target_speed, false);
+}
+
+
+/// @brief toggle if puller is active
+void toggle_puller() {
+  pullingEnabled = !pullingEnabled;
+
+  if (!pullingEnabled) {
+    disable_puller();
+  } else {
+    set_speed(target_speed);
   }
 }
 
-void toggle_puller() {
 
-  // if(pullingEnabled) stepper->stopMove();
-  pullingEnabled = !pullingEnabled;
-}
-
-void disable_puller() {
-  pullingEnabled = false;
-  stepper->stopMove();
-}
 
 #else  // end USES_STEPPER, start USES_PWM_MOTOR
 bool motor_running = false;
@@ -368,7 +432,7 @@ void SaveParameters() {
 }
 
 void LoadParameters() {
-  if (eeprom_initialized) {
+  if (eeprom_initialized()) {
     // Load from EEPROM
     target_temp = EEPROM_readDouble(TtAddress);
     KP = EEPROM_readDouble(KpAddress);
@@ -386,7 +450,7 @@ void LoadParameters() {
 
 void EEPROM_writeDouble(int address, double value) {
   byte *p = (byte *)(void *)&value;
-  for (int i = 0; i < sizeof(value); i++) {
+  for (unsigned int i = 0; i < sizeof(value); i++) {
     EEPROM.write(address++, *p++);
   }
 }
@@ -394,7 +458,7 @@ void EEPROM_writeDouble(int address, double value) {
 double EEPROM_readDouble(int address) {
   double value = 0.0;
   byte *p = (byte *)(void *)&value;
-  for (int i = 0; i < sizeof(value); i++) {
+  for (unsigned int i = 0; i < sizeof(value); i++) {
     *p++ = EEPROM.read(address++);
   }
   return value;
@@ -421,22 +485,25 @@ ControlState controlState = CTRL_SET_LINE;
 /****************************************
  * DISPLAY
  * Wiring: https://create.arduino.cc/projecthub/Hack-star-Arduino/learn-to-use-lcd-1602-i2c-parallel-with-arduino-uno-f73f07
+ *    i2c LCD Module  ==>   Arduino Pin
+ *    SCL             ==>     A5
+ *    SDA             ==>     A4
+ *    Vcc             ==>     Vcc (5v)
+ *    Gnd             ==>     Gnd
  */
 // makes sure the display doesn't update too fast
 unsigned long last_update = 0;
 
 #ifdef I2C_LCD
-#include <LiquidCrystal_I2C.h>
-LiquidCrystal_I2C lcd(LCD_ADDRESS, COLUMNS, ROWS);  // if the address 0x27 doesn't work, try 0x3f
-                                                    /* Wiring:
-                                                    *    i2c LCD Module  ==>   Arduino Pin
-                                                    *    SCL             ==>     A5
-                                                    *    SDA             ==>     A4
-                                                    *    Vcc             ==>     Vcc (5v)
-                                                    *    Gnd             ==>     Gnd      */
+#ifdef LCD_ADDRESS
+hd44780_I2Cexp lcd(LCD_ADDRESS, COLUMNS, ROWS);  // if the address 0x27 doesn't work, try 0x3f
 #else
-#include <LiquidCrystal.h>
-LiquidCrystal lcd(LCD_RS, LCD_E, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
+hd44780_I2Cexp lcd;  // declare lcd object: auto locate & auto config expander chip
+#endif
+
+#else
+
+hd44780_pinIO lcd(LCD_RS, LCD_E, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 /* Wiring:
  *  LCD Module  ==>   Arduino Pin
  *  D7  ==> 0
@@ -449,48 +516,38 @@ LiquidCrystal lcd(LCD_RS, LCD_E, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
  */
 #endif
 
-LiquidLine welcome_line1(4, 0, "Welcome");
-LiquidLine welcome_line2(1, 1, "To Filamaker");
-LiquidScreen welcome_screen(welcome_line1, welcome_line2);
-
 // Status
-LiquidLine actual_temp_line(0, 0, "Temp: ", current_temp, " C");
-LiquidLine actual_speed_line(0, 1, "Speed: ", target_speed);  // current_speed will fluctuate a lot. Better to show current speed.
-// LiquidScreen status_screen(actual_temp_line, actual_speed_line);
+FastLine<double> actual_temp_line(0, 0, "Temp(C): ", current_temp);
+FastLine<long> actual_speed_line(0, 1, "Speed: ", target_speed);  // current_speed will fluctuate a lot. Better to show target speed.
 
 // Edit
-LiquidLine set_temp_line(0, 2, "Set Temp: ", target_temp, " C");
-LiquidLine set_speed_line(0, 3, "Set Speed: ", target_speed);
-// LiquidScreen edit_screen(set_temp_line, set_speed_line);
+FastLine<double> set_temp_line(0, 2, "Set Temp(C):", target_temp);
+FastLine<long> set_speed_line(0, 3, "Set Speed:", target_speed);
 
 // Enable
-LiquidLine enable_heater_line(0, 4, "Start Heater: ", heatingEnabled);
-LiquidLine enable_puller_line(0, 5, "Start Puller: ", pullingEnabled);
-// LiquidScreen enable_screen(enable_heater_line, enable_puller_line, set_temp_line, set_speed_line, actual_temp_line, actual_speed_line);
+FastLine<bool> enable_heater_line(0, 4, "Start Heater: ", heatingEnabled);
+FastLine<bool> enable_puller_line(0, 5, "Start Puller: ", pullingEnabled);
 
 //  EEPROM
-LiquidLine save_parameters_line(0, 6, "Save: ", saved_status);
+FastLine<bool> save_parameters_line(0, 6, "Save: ", saved_status);
 
-// LiquidLine start_line(0, 0, "Start: ", menu_message);
-// LiquidScreen enable_screen(start_line);
-LiquidScreen main_screen;
-LiquidScreen error_screen;
+FastScreen main_screen;
+FastScreen error_screen;
 
-LiquidMenu menu(lcd);
+FastMenu menu(lcd, COLUMNS, ROWS);
 
 
 /*
 * Displays an error message and stops pulling and heating
 */
-template<typename A>
-void throw_error(const A &message) {
-  LiquidLine error_line(0, 0, message);
-  error_screen.add_line(error_line);
-  error_screen.set_displayLineCount(1);
+void throw_error(const char *message) {
+  FastLine<int> *error_line_ptr = new FastLine<int>(0, 0, message);
+  error_screen.add_line(error_line_ptr);
+
   menu.add_screen(error_screen);
 
   // switch to the newly created error screen
-  menu.change_screen(2);
+  menu.next_screen();
 
   // stop pulling and heating
   disable_heater();
@@ -506,12 +563,11 @@ void setup() {
   pinMode(HEATER_PIN, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
 
-#ifdef I2C_LCD
-  lcd.init();
-  lcd.backlight();
-#endif
-
   lcd.begin(COLUMNS, ROWS);
+  lcd.print(BOOT_MESSAGE);
+  delay(BOOT_DELAY);
+  lcd.clear();
+  lcd.home();
 
   /***********
      * EEPROM
@@ -534,17 +590,18 @@ void setup() {
  * Puller
  */
 #ifdef USES_STEPPER
-  engine.init();
-  stepper = engine.stepperConnectToPin(STEP_PIN);
-  if (stepper) {
+  #ifdef USE_FASTACCELSTEPPER_LIBRARY
+    stepper_engine.init();
+    stepper = stepper_engine.stepperConnectToPin(STEP_PIN);
+
     stepper->setDirectionPin(DIR_PIN);
     stepper->setEnablePin(ENABLE_PIN);
     stepper->setAutoEnable(true);
 
     stepper->setSpeedInHz(target_speed);
     stepper->setAcceleration(ACCELERATION);
-  }
-#else  // a DC motor is assumed
+  #endif
+#else // DC Motor
   pinMode(MOTOR_PWM_PIN, OUTPUT);
   pinMode(DIR_PIN, OUTPUT);
   pinMode(ENABLE_PIN, OUTPUT);
@@ -554,30 +611,22 @@ void setup() {
   /***********
      * Menu
      */
-  set_temp_line.attach_function(1, increase_temp);
-  set_temp_line.attach_function(2, decrease_temp);
+  set_temp_line.add_controls(NULL, increase_temp, decrease_temp);
+  set_speed_line.add_controls(NULL, increase_speed, decrease_speed);
+  enable_heater_line.add_controls(toggle_heater);
+  enable_puller_line.add_controls(toggle_puller);
+  save_parameters_line.add_controls(SaveParameters);
 
-  set_speed_line.attach_function(1, increase_speed);
-  set_speed_line.attach_function(2, decrease_speed);
+  // set_temp_line.set_decimalPlaces(0);
+  // actual_temp_line.set_decimalPlaces(0);
 
-  enable_heater_line.attach_function(1, toggle_heater);
-
-  enable_puller_line.attach_function(1, toggle_puller);
-  // start_line.attach_function(1, toggle_running);
-
-  save_parameters_line.attach_function(1, SaveParameters);
-
-  set_temp_line.set_decimalPlaces(0);
-  actual_temp_line.set_decimalPlaces(0);
-
-  main_screen.add_line(enable_heater_line);
-  main_screen.add_line(enable_puller_line);
-  main_screen.add_line(set_temp_line);
-  main_screen.add_line(set_speed_line);
-  main_screen.add_line(save_parameters_line);
-  main_screen.add_line(actual_temp_line);
-  main_screen.add_line(actual_speed_line);
-  main_screen.set_displayLineCount(2);
+  main_screen.add_line(&enable_heater_line);
+  main_screen.add_line(&enable_puller_line);
+  main_screen.add_line(&set_temp_line);
+  main_screen.add_line(&set_speed_line);
+  main_screen.add_line(&save_parameters_line);
+  main_screen.add_line(&actual_temp_line);
+  main_screen.add_line(&actual_speed_line);
   menu.add_screen(main_screen);
 }
 
@@ -585,8 +634,18 @@ void loop() {
   /*********
    * Temperature
    */
-  bool heated = heater_loop();
 
+  bool heated;
+
+  // Don't run heater loop at the same time as display update.
+  // Keeps stepper more consistent
+  if (millis() - last_update > MIN_DISPLAY_UPDATE_MILLIS) {
+    last_update = millis();
+    last_temp = current_temp;
+    menu.update();
+  } else {
+    heated = heater_loop();
+  }
 
   // check if motor should keep running. Motor won't run until temperature is reached.
   runMotorIfTempReached(heated);
@@ -597,6 +656,7 @@ void loop() {
    */
   // skip menu updates and controls if an error has been thrown. Leave the error on display.
   if (error_thrown) {
+    menu.update();
     return;
   }
 
@@ -604,77 +664,21 @@ void loop() {
   select_btn.loop();
   down_btn.loop();
 
-  if (int(current_temp) != int(last_temp) && millis() - last_update > MIN_DISPLAY_UPDATE_MILLIS) {
-    last_update = millis();
-    last_temp = current_temp;
-    menu.update();
-  }
-  bool up_pressed = false;
-  bool down_pressed = false;
-  bool select_pressed = false;
-
   if (!up_btn.getState() && millis() - last_press_time > AUTO_PRESS_DELAY) {
-    up_pressed = true;
     last_press_time = millis();
+    menu.up();
+    menu.update();
   }
 
   else if (!down_btn.getState() && millis() - last_press_time > AUTO_PRESS_DELAY) {
-    down_pressed = true;
     last_press_time = millis();
+    menu.down();
+    menu.update();
   }
 
   else if (!select_btn.getState() && millis() - last_press_time > AUTO_PRESS_DELAY) {
-    select_pressed = true;
     last_press_time = millis();
-  }
-
-  // Navigation
-  switch (controlState) {
-    case CTRL_SET_SCREEN:  // cycling screens
-      if (up_pressed) {
-        menu.previous_screen();
-      } else if (down_pressed) {
-        menu.next_screen();
-      }
-
-      break;
-
-    case CTRL_SET_LINE:  // cycling through lines
-      if (up_pressed) {
-        menu.switch_focus(false);
-      } else if (down_pressed) {
-        menu.switch_focus(true);
-        // menu.switch_focus();
-      }
-
-      break;
-
-    case CTRL_SET_SETTING:  // changing a setting
-      if (up_pressed) {
-        menu.call_function(1);
-      } else if (down_pressed) {
-        menu.call_function(2);
-      }
-
-      break;
-
-    default:  // invalid state
-      controlState = CTRL_SET_SCREEN;
-      break;
-  }
-
-  if (select_pressed) {
-    // if the line has two functions, it uses both arrows and needs control state changed
-    if (menu.is_callable(2)) {
-      if (controlState + 1 < CTRL_OUT_OF_BOUNDS) {
-        controlState = (ControlState)(controlState + 1);
-      } else {
-        controlState = CTRL_SET_LINE;
-      }
-    }
-    // otherwise, it is either a status or a button. Just try to run the function.
-    else {
-      menu.call_function(1);
-    }
+    menu.select();
+    menu.update();
   }
 }

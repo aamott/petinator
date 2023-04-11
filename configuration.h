@@ -4,6 +4,9 @@
 * for the PETInator.
 *******************************************/
 
+#ifndef CONFIGURATION_H
+  #define CONFIGURATION_H
+
 /******************************************
 * Thermistor
 * Wiring: https://learn.adafruit.com/thermistor/using-a-thermistor
@@ -63,10 +66,25 @@
 */
 #define USES_STEPPER // if a stepper is not used, a DC motor is assumed
 #ifdef USES_STEPPER
-    #define MAX_SPEED 30000 // in steps per second
-    #define ACCELERATION 5000
-    #define DEFAULT_SPEED 30000 // default stepper speed in steps per second
-    #define SPEED_INC 100 // speed increment size in steps per second
+    #define STEPS_PER_MM 650 // how many steps the stepper takes to pull 1mm of filament
+    #define MAX_SPEED 300 // in mm/s
+    #define DEFAULT_SPEED 5 // default stepper speed in mm/s
+    #define SPEED_INC 0.5 // speed increment size in steps per second
+
+    /* FastAccelStepper Library*/
+    // Some boards are supported by the FastAccelStepper library,
+    // which runs the stepper in an interrupt and has a far higher
+    // max speed. 
+    // If your chipset is supported, you should enable this. You can check
+    // at the repo:
+    // https://github.com/gin66/FastAccelStepper
+    // NOTE: mm/s speed hasn't been implemented yet. It treats it as steps per second at the moment.
+    // #define USE_FASTACCELSTEPPER_LIBRARY // uncomment to enable
+
+    #ifdef USE_FASTACCELSTEPPER_LIBRARY
+      #define ACCELERATION 5000
+    #endif
+    
 #else
     #define USES_PWM_MOTOR
     #define MAX_SPEED 255 // PWM max. Almost always 256. 
@@ -94,8 +112,12 @@
 * DISPLAY
 * Wiring: https://create.arduino.cc/projecthub/Hack-star-Arduino/learn-to-use-lcd-1602-i2c-parallel-with-arduino-uno-f73f07
 */
+// Message to display on boot
+#define BOOT_MESSAGE "PETInator 1.0"
+// How long to show the boot message
+#define BOOT_DELAY 1500
+
 // Use display with I2C controller
-// requires changing LiquidMenu_config.h - see https://github.com/VaSe7u/LiquidMenu/issues/36
 #define I2C_LCD
 
 // 1602 display would be 2 rows, 16 columns
@@ -104,6 +126,14 @@
 
 // Display updates take significant time. Don't update too often.
 #define MIN_DISPLAY_UPDATE_MILLIS 500
+
+
+// Define the class name
+#ifdef I2C_LCD
+  #define LCD_CLASS hd44780_I2Cexp
+#else
+  #define LCD_CLASS hd44780_pinIO
+#endif
 
 
 /******************************************
@@ -157,3 +187,4 @@
   #define LCD_RS 5
 #endif
   
+#endif // CONFIGURATION_H
