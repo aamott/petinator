@@ -1,0 +1,125 @@
+{
+    "version": 1,
+    "author": "Adam",
+    "editor": "wokwi",
+    "parts": [
+      { "type": "wokwi-arduino-uno", "id": "uno", "top": 0, "left": 0, "attrs": {} },
+      {
+        "type": "wokwi-ntc-temperature-sensor",
+        "id": "ntc1",
+        "top": 183.99,
+        "left": -160.66,
+        "attrs": {}
+      },
+      {
+        "type": "wokwi-a4988",
+        "id": "drv1",
+        "top": -116.19,
+        "left": -2.83,
+        "rotate": 180,
+        "attrs": {}
+      },
+      {
+        "type": "wokwi-stepper-motor",
+        "id": "stepper1",
+        "top": -371.74,
+        "left": -251.41,
+        "attrs": {}
+      },
+      { "type": "wokwi-lcd1602", "id": "lcd2", "top": -18.84, "left": 313.17, "attrs": {} },
+      {
+        "type": "wokwi-resistor",
+        "id": "r1",
+        "top": 152.45,
+        "left": 449.95,
+        "rotate": 90,
+        "attrs": { "value": "1000" }
+      },
+      {
+        "type": "wokwi-potentiometer",
+        "id": "pot1",
+        "top": 150.7,
+        "left": 357.89,
+        "rotate": 180,
+        "attrs": {}
+      },
+      {
+        "type": "wokwi-pushbutton",
+        "id": "btn1",
+        "top": -101.67,
+        "left": 171.05,
+        "attrs": { "color": "green" }
+      },
+      {
+        "type": "wokwi-pushbutton",
+        "id": "btn2",
+        "top": -205.48,
+        "left": 171.89,
+        "attrs": { "color": "green" }
+      },
+      {
+        "type": "wokwi-pushbutton",
+        "id": "btn3",
+        "top": -154.48,
+        "left": 171.82,
+        "attrs": { "color": "green" }
+      },
+      {
+        "type": "wokwi-led",
+        "id": "led1",
+        "top": -59.09,
+        "left": -100.63,
+        "attrs": { "color": "red" }
+      },
+      {
+        "type": "wokwi-lcd1602",
+        "id": "lcd1",
+        "top": -161.77,
+        "left": 311.99,
+        "attrs": { "pins": "i2c" }
+      }
+    ],
+    "connections": [
+      [ "drv1:1B", "stepper1:B-", "green", [ "h0" ] ],
+      [ "drv1:1A", "stepper1:B+", "green", [ "h0" ] ],
+      [ "drv1:2A", "stepper1:A+", "green", [ "h0" ] ],
+      [ "drv1:2B", "stepper1:A-", "green", [ "h0" ] ],
+      [ "uno:A0", "ntc1:OUT", "green", [ "v0" ] ],
+      [ "ntc1:VCC", "uno:3.3V", "red", [ "h0" ] ],
+      [ "ntc1:GND", "uno:GND.3", "black", [ "h0" ] ],
+      [ "lcd2:VDD", "uno:5V", "red", [ "v103.7", "h-197.56" ] ],
+      [ "lcd2:RW", "lcd2:VSS", "black", [ "v-14.03", "h-39.71", "v0.76" ] ],
+      [ "lcd2:K", "uno:GND.3", "black", [ "v127.18", "h-317.35" ] ],
+      [ "r1:1", "lcd2:A", "red", [ "h0" ] ],
+      [ "r1:2", "uno:5V", "red", [ "h-1.33", "v41.39", "h-322.16" ] ],
+      [ "pot1:SIG", "lcd2:V0", "green", [ "v-8.52", "h-39.73" ] ],
+      [ "pot1:GND", "uno:GND.3", "black", [ "v-10.99", "h32.68", "v85.36", "h-259.18" ] ],
+      [ "pot1:VCC", "uno:5V", "red", [ "v-6.66", "h-31.98", "v61.24", "h-195.47" ] ],
+      [ "btn2:1.l", "uno:GND.1", "black", [ "h0" ] ],
+      [ "btn3:1.l", "uno:GND.1", "black", [ "h0" ] ],
+      [ "btn1:1.l", "uno:GND.1", "black", [ "h0" ] ],
+      [ "drv1:SLEEP", "drv1:RESET", "black", [ "h0" ] ],
+      [ "drv1:MS3", "drv1:MS2", "red", [ "h13.89", "v11.39", "h-3.62" ] ],
+      [ "drv1:MS2", "drv1:MS1", "red", [ "h12.68", "v9.04" ] ],
+      [ "uno:GND.1", "led1:C", "black", [ "v35.74", "h-4.59" ] ],
+      [ "uno:6", "led1:A", "green", [ "v10.17", "h-271.32" ] ],
+      [ "lcd2:D5", "uno:2", "green", [ "v24.82", "h-185.33", "v-136.17", "h-27.43" ] ],
+      [ "uno:3", "lcd2:D4", "green", [ "v-13.22", "h44.33", "v134.68", "h171.59" ] ],
+      [ "lcd2:E", "uno:4", "green", [ "v12.35", "h-116.36", "v-133.68", "h-58.36" ] ],
+      [ "uno:5", "lcd2:RS", "green", [ "v-25.19", "h75.3", "v136.17", "h89.78" ] ],
+      [ "uno:1", "lcd2:D6", "green", [ "v-4.19", "h15.23", "v137.71", "h194.21" ] ],
+      [ "lcd2:D7", "uno:0", "green", [ "v36.05", "h-216.21" ] ],
+      [ "uno:9", "drv1:STEP", "blue", [ "v0" ] ],
+      [ "uno:10", "btn1:2.l", "green", [ "v0" ] ],
+      [ "uno:11", "btn3:2.l", "green", [ "v0" ] ],
+      [ "uno:12", "btn2:2.l", "green", [ "v0" ] ],
+      [ "uno:8", "drv1:DIR", "blue", [ "v0" ] ],
+      [ "uno:7", "drv1:ENABLE", "blue", [ "v0" ] ],
+      [ "uno:5V", "drv1:MS1", "red", [ "v-5", "h-98.65", "v-221.16", "h-19.92", "v-20.87" ] ],
+      [ "lcd1:GND", "btn2:1.l", "black", [ "h-64.29", "v-78.1", "h-79.84" ] ],
+      [ "lcd1:VCC", "lcd2:VDD", "red", [ "h-8.1", "v228.98" ] ],
+      [ "lcd1:SDA", "uno:A4", "green", [ "h-13.91", "v313.52", "h-55.9" ] ],
+      [ "lcd1:SCL", "uno:A5", "green", [ "h-21.48", "v292.37" ] ]
+    ],
+    "dependencies": {}
+  }
