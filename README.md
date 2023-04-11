@@ -2,6 +2,8 @@
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/T6T6I11DP)
 ### Firmware for bottle-to-filament machines
 
+*Compatible with PlatformIO and Arduino IDE*
+
 [Simulation with stepper motor puller](https://wokwi.com/projects/333363618182595154)
 
 Bottle-to-filament machines are what I call the likes of [Petamentor](https://petamentor.com/) and [The Recreator 3D](http://recreator3d.com/). These machines use hacked PID controllers and PWM motor controllers or 3D printer parts running Marlin. If pultrusion is going to grow, it should be controlled from one board without having to use an entire Marlin interface.
@@ -26,7 +28,14 @@ Here are a few pictures of what I'm using. It's a jumbled mess of noncommital wi
 - Start pulling when temperature reached
 - Auto-pause puller when temperature gets too low
 
-# Parts
+
+# Wokwi
+This project features a Wokwi simulation! To use it, open this project in VS Code and install the Wokwi extension. Then, hit `Ctrl+p` and type `Wokwi: Start Simulator`and run it. The first time, it will prompt you to get a license key. 
+
+Or try the online simulator (almost always up to date): [Simulation with stepper motor puller](https://wokwi.com/projects/333363618182595154)
+
+
+# Example Setup Parts
 - Hotend [like this](https://www.aliexpress.us/item/2251832495261371.html)
     - Heatblock (I like the volcano)
     - Nozzles (get the [cheap ones](https://www.aliexpress.us/item/3256802254841948.html))
